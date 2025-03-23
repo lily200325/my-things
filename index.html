@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人物品管理</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="navigation">
+            <div class="search-bar">
+                <input type="text" placeholder="搜索...">
+                <button onclick="importData()">导入</button>
+                <button onclick="exportData()">导出</button>
+            </div>
+        </div>
+        <div id="mainContent"></div>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        // 确保在页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedItems();
+            renderMainPage();
+        });
+    </script>
+</body>
+</html> 
+</html> 
