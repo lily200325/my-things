@@ -1,30 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>个人物品管理</title>
+    <title>物品管理系统</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <div class="navigation">
-            <div class="search-bar">
-                <input type="text" placeholder="搜索...">
-                <button onclick="importData()">导入</button>
-                <button onclick="exportData()">导出</button>
+        <div class="search-bar">
+            <input type="text" placeholder="搜索...">
+            <div class="action-buttons">
+                <button>导入</button>
+                <button>导出</button>
             </div>
         </div>
-        <div id="mainContent"></div>
+        <div class="category-list">
+            <a href="wear.html" class="category-item">
+                <div class="category-content">
+                    <span class="category-name">穿戴类</span>
+                </div>
+            </a>
+            <a href="bodycare.html" class="category-item">
+                <div class="category-content">
+                    <span class="category-name">身体护理类</span>
+                </div>
+            </a>
+            <a href="daily.html" class="category-item">
+                <div class="category-content">
+                    <span class="category-name">日用品类</span>
+                </div>
+            </a>
+            <a href="office.html" class="category-item">
+                <div class="category-content">
+                    <span class="category-name">办公用品类</span>
+                </div>
+            </a>
+            <a href="hobby.html" class="category-item">
+                <div class="category-content">
+                    <span class="category-name">兴趣爱好类</span>
+                </div>
+            </a>
+            <a href="investment.html" class="category-item">
+                <div class="category-content">
+                    <span class="category-name">韭菜成长日志</span>
+                </div>
+            </a>
+        </div>
     </div>
-    <script src="script.js"></script>
-    <script>
-        // 确保在页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            loadSavedItems();
-            renderMainPage();
-        });
-    </script>
 </body>
-</html> 
 </html> 

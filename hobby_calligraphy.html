@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书法</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" placeholder="搜索...">
+            <div class="action-buttons">
+                <button>导入</button>
+                <button>导出</button>
+            </div>
+        </div>
+        <div class="header">
+            <a href="hobby.html" class="back-button">←</a>
+            <h1>书法</h1>
+        </div>
+        <div class="items-container">
+            <!-- 已添加的物品将在这里显示 -->
+        </div>
+        <div class="add-item-form">
+            <h2>添加新物品</h2>
+            <div class="form-group">
+                <label class="image-upload">
+                    <input type="file" accept="image/*" id="itemImage">
+                    <div class="placeholder">+</div>
+                </label>
+                <input type="text" id="itemLocation" class="location-input" placeholder="位置...">
+                <button onclick="addNewItem()" class="add-item-button">添加物品</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

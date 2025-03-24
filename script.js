@@ -156,73 +156,321 @@ const categories = {
     }
 };
 
-function showNextLevel(parentId, currentId) {
-    let currentObj;
-    if (!parentId) {
-        currentObj = categories[currentId];
-    } else {
-        let parent = categories[parentId];
-        if (!parent) {
-            for (const cat of Object.values(categories)) {
-                if (cat.subcategories && cat.subcategories[parentId]) {
-                    parent = cat.subcategories[parentId];
-                    break;
-                }
-            }
-        }
-        currentObj = parent?.subcategories?.[currentId];
+// 存储当前页面的物品数据
+let items = [];
+
+// 从本地存储加载数据
+function loadItems() {
+    const pathname = window.location.pathname;
+    const storedItems = localStorage.getItem(pathname);
+    if (storedItems) {
+        items = JSON.parse(storedItems);
+        displayItems();
     }
-    
-    if (!currentObj) {
-        console.error('找不到类别:', currentId);
-        return;
-    }
-    
-    currentPath.push({
-        id: currentId,
+}
+
+// 保存数据到本地存储
+function saveItems() {
+    const pathname = window.location.pathname;
+    localStorage.setItem(pathname, JSON.stringify(items));
+}
+
+// 显示物品列表页面
+function showItemPage(itemName, parentId) {
+    currentPath.push({ 
+        id: itemName, 
         parentId: parentId,
-        name: currentObj.name,
-        type: currentObj.subcategories ? 'category' : 'items'
+        name: itemName,
+        isItem: true 
     });
     currentLevel++;
     
     const contentDiv = document.getElementById('mainContent');
-    let html = `
-        <button class="back-button">←</button>
-        <div class="category-grid">
+    contentDiv.innerHTML = `
+        <div class="container">
+            <div class="search-bar">
+                <input type="text" placeholder="搜索...">
+                <div class="action-buttons">
+                    <button>导入</button>
+                    <button>导出</button>
+                </div>
+            </div>
+            <div class="header">
+                <button class="back-button" onclick="goBack()">←</button>
+                <h1>${itemName}</h1>
+            </div>
+            <div class="items-container">
+                <!-- 已添加的物品将在这里显示 -->
+            </div>
+            <button class="add-item-button" onclick="addNewItem()">添加物品</button>
+        </div>
     `;
 
-    if (currentObj.subcategories) {
-        Object.keys(currentObj.subcategories).forEach(key => {
-            const subCategory = currentObj.subcategories[key];
-            html += `
-                <div class="category-card" data-parent="${currentId}" data-id="${key}">
-                    <h2>${subCategory.name}</h2>
-                </div>`;
+    // 加载已保存的物品
+    loadItems();
+
+    // 添加事件监听器
+    setupEventListeners();
+}
+
+// 设置事件监听器
+function setupEventListeners() {
+    // 搜索功能
+    document.querySelector('.search-bar input').addEventListener('input', function(e) {
+        const searchText = e.target.value.toLowerCase();
+        const itemCards = document.querySelectorAll('.item-card');
+        itemCards.forEach(card => {
+            const location = card.querySelector('.location-input').value.toLowerCase();
+            if (location.includes(searchText)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
         });
-    } else if (currentObj.items) {
-        currentObj.items.forEach(item => {
-            html += `
-                <div class="category-card" data-parent="${currentId}" data-item="${item}">
-                    <h2>${item}</h2>
-                </div>`;
+    });
+
+    // 导入按钮
+    document.querySelector('.action-buttons button:nth-child(1)').addEventListener('click', importData);
+
+    // 导出按钮
+    document.querySelector('.action-buttons button:nth-child(2)').addEventListener('click', exportData);
+
+    // 监听位置输入变化
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('location-input')) {
+            saveAllItems();
+        }
+    });
+}
+
+// 添加新物品
+function addNewItem() {
+    const container = document.querySelector('.items-container');
+    const itemCard = document.createElement('div');
+    itemCard.className = 'item-card';
+    itemCard.innerHTML = `
+        <div class="image-upload">
+            <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+            <div class="placeholder">+</div>
+        </div>
+        <input type="text" class="location-input" placeholder="位置...">
+    `;
+    container.appendChild(itemCard);
+}
+
+// 处理图片上传
+function handleImageUpload(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imageContainer = input.parentElement;
+            imageContainer.style.backgroundImage = `url(${e.target.result})`;
+            imageContainer.style.backgroundSize = 'cover';
+            imageContainer.style.backgroundPosition = 'center';
+            const placeholder = imageContainer.querySelector('.placeholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // 保存当前状态
+            saveAllItems();
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 保存所有物品
+function saveAllItems() {
+    const cards = document.querySelectorAll('.item-card');
+    const items = [];
+    
+    cards.forEach(card => {
+        const location = card.querySelector('.location-input').value;
+        const imageContainer = card.querySelector('.image-upload');
+        const backgroundImage = imageContainer.style.backgroundImage;
+        const image = backgroundImage ? backgroundImage.slice(5, -2) : null;
+        
+        if (location || image) {  // 允许保存未完成的项目
+            items.push({
+                location: location,
+                image: image
+            });
+        }
+    });
+    
+    // 保存到本地存储
+    const pathname = window.location.pathname;
+    localStorage.setItem(pathname, JSON.stringify(items));
+}
+
+// 显示已保存的物品
+function displaySavedItems() {
+    const pathname = window.location.pathname;
+    const savedItems = localStorage.getItem(pathname);
+    
+    if (savedItems) {
+        const items = JSON.parse(savedItems);
+        const container = document.querySelector('.items-container');
+        container.innerHTML = ''; // 清空容器
+        
+        items.forEach(item => {
+            const itemCard = document.createElement('div');
+            itemCard.className = 'item-card';
+            itemCard.innerHTML = `
+                <div class="image-upload" ${item.image ? `style="background-image: url(${item.image}); background-size: cover; background-position: center;"` : ''}>
+                    <input type="file" accept="image/*" onchange="handleImageUpload(this)">
+                    <div class="placeholder" ${item.image ? 'style="display: none;"' : ''}>+</div>
+                </div>
+                <input type="text" class="location-input" value="${item.location || ''}" placeholder="位置...">
+            `;
+            container.appendChild(itemCard);
         });
     }
+}
 
-    html += '</div>';
-    contentDiv.innerHTML = html;
+// 显示所有物品
+function displayItems() {
+    const container = document.querySelector('.items-container');
+    container.innerHTML = '';
+    
+    items.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'item-card';
+        itemElement.innerHTML = `
+            <img src="${item.image}" alt="物品图片">
+            <p class="location-text">${item.location}</p>
+            <button class="delete-button" onclick="deleteItem(${item.id})">删除</button>
+        `;
+        container.appendChild(itemElement);
+    });
+}
 
-    const backButton = document.querySelector('.back-button');
-    backButton.addEventListener('click', goBack);
+// 将图片转换为Base64
+function convertImageToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
+// 删除物品
+function deleteItem(id) {
+    if (confirm('确定要删除这个物品吗？')) {
+        items = items.filter(item => item.id !== id);
+        saveItems();
+        displayItems();
+    }
+}
+
+// 导入数据
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedItems = JSON.parse(e.target.result);
+                items = importedItems;
+                saveItems();
+                displayItems();
+                alert('导入成功！');
+            } catch (error) {
+                alert('导入失败，请确保文件格式正确！');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+// 导出数据
+function exportData() {
+    const dataStr = JSON.stringify(items, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${document.querySelector('h1').textContent}_物品列表.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function showNextLevel(parentId, currentId) {
+    // 更新导航路径
+    const categoryName = currentId;
+    
+    // 检查是否是最终项目
+    let isEndItem = false;
+    let parent = categories;
+    let currentCategory = null;
+    
+    // 遍历categories找到当前项目
+    for (const key in categories) {
+        if (categories[key].subcategories) {
+            for (const subKey in categories[key].subcategories) {
+                const subCat = categories[key].subcategories[subKey];
+                if (subCat.items && subCat.items.includes(currentId)) {
+                    isEndItem = true;
+                    break;
+                }
+                // 检查更深层的子类别
+                if (subCat.subcategories) {
+                    for (const deepKey in subCat.subcategories) {
+                        const deepCat = subCat.subcategories[deepKey];
+                        if (deepCat.items && deepCat.items.includes(currentId)) {
+                            isEndItem = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 如果是最终项目，显示添加物品界面
+    if (isEndItem) {
+        showItemPage(currentId, parentId);
+        return;
+    }
+
+    // 如果不是最终项目，显示子类别
+    currentPath.push({
+        id: currentId,
+        parentId: parentId,
+        name: categoryName
+    });
+    currentLevel++;
+
+    // 获取当前类别
+    if (parentId) {
+        currentCategory = getCategory(currentId, parentId);
+    } else {
+        currentCategory = categories[currentId];
+    }
+
+    // 显示子类别或物品
+    const contentDiv = document.getElementById('mainContent');
+    contentDiv.innerHTML = `
+        <div class="container">
+            <div class="header">
+                <button class="back-button" onclick="goBack()">←</button>
+                <h1>${currentCategory.name}</h1>
+            </div>
+            <div class="category-grid">
+                ${renderSubcategories(currentCategory)}
+            </div>
+        </div>
+    `;
+
+    // 添加点击事件
     document.querySelectorAll('.category-card').forEach(card => {
         card.addEventListener('click', function() {
-            const itemName = this.dataset.item;
-            if (itemName) {
-                showItemAddPage(itemName, this.dataset.parent);
-            } else {
-                showNextLevel(this.dataset.parent, this.dataset.id);
-            }
+            showNextLevel(this.dataset.parent, this.dataset.id);
         });
     });
 }
@@ -402,87 +650,41 @@ function uploadImage(element) {
     input.click();
 }
 
-function addNewItem() {
-    const itemGrid = document.querySelector('.item-grid');
-    const newItem = document.createElement('div');
-    newItem.className = 'item-card';
-    newItem.innerHTML = `
-        <div class="image-upload">
-            <span>+</span>
-        </div>
-        <input type="text" class="location-input" placeholder="位置">
-    `;
+function renderSubcategories(category) {
+    let html = '';
     
-    newItem.querySelector('.image-upload').addEventListener('click', function() {
-        uploadImage(this);
+    if (category.subcategories) {
+        Object.keys(category.subcategories).forEach(key => {
+            const subCategory = category.subcategories[key];
+            html += `
+                <div class="category-card" data-parent="${category.id}" data-id="${key}">
+                    <h2>${subCategory.name}</h2>
+                </div>`;
+        });
+    } else if (category.items) {
+        category.items.forEach(item => {
+            html += `
+                <div class="category-card" data-parent="${category.id}" data-id="${item}">
+                    <h2>${item}</h2>
+                </div>`;
+        });
+    }
+    
+    return html;
+}
+
+// 页面加载时显示已保存的物品
+document.addEventListener('DOMContentLoaded', () => {
+    displaySavedItems();
+    
+    // 为添加物品按钮添加点击事件
+    const addButton = document.querySelector('.add-item-button');
+    if (addButton) {
+        addButton.addEventListener('click', addNewItem);
+    }
+    
+    // 自动保存功能
+    document.addEventListener('change', () => {
+        saveAllItems();
     });
-    
-    itemGrid.appendChild(newItem);
-}
-
-function importData() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = function(e) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                savedItems = JSON.parse(e.target.result);
-                localStorage.setItem('myThings', JSON.stringify(savedItems));
-                alert('数据导入成功！');
-            } catch (error) {
-                alert('数据导入失败，请确保文件格式正确！');
-            }
-        };
-        reader.readAsText(file);
-    };
-    input.click();
-}
-
-function exportData() {
-    const data = JSON.stringify(savedItems, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'my_things_backup.json';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function saveItem(button) {
-    const itemCard = button.parentElement;
-    const location = itemCard.querySelector('.location-input').value;
-    const image = itemCard.querySelector('.image-upload img')?.src;
-    
-    if (!location) {
-        alert('请输入存放位置');
-        return;
-    }
-    
-    const currentCategory = currentPath[currentPath.length - 1].name;
-    if (!savedItems[currentCategory]) {
-        savedItems[currentCategory] = [];
-    }
-    
-    savedItems[currentCategory].push({
-        location: location,
-        image: image,
-        date: new Date().toISOString()
-    });
-    
-    localStorage.setItem('myThings', JSON.stringify(savedItems));
-    alert('保存成功！');
-    
-    itemCard.querySelector('.image-upload').innerHTML = '<span>+</span>';
-    itemCard.querySelector('.location-input').value = '';
-}
-
-function loadSavedItems() {
-    const saved = localStorage.getItem('myThings');
-    if (saved) {
-        savedItems = JSON.parse(saved);
-    }
-}
+});
