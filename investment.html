@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>韭菜成长日志</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        
+        .item-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .item-card {
+            border: 1px solid #eaeaea;
+            border-radius: 10px;
+            padding: 12px;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        
+        .item-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .delete-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            color: #ff5252;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+        }
+        
+        .item-card:hover .delete-button {
+            opacity: 0.7;
+        }
+        
+        .delete-button:hover {
+            opacity: 1 !important;
+        }
+        
+        .item-image-container {
+            width: 100%;
+            height: 150px;
+            border: 1px dashed #ddd;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+        
+        .item-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .add-icon {
+            font-size: 36px;
+            color: #ccc;
+        }
+        
+        .item-details {
+            margin-top: 8px;
+        }
+        
+        .item-card h3 {
+            margin: 8px 0;
+            font-size: 16px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .item-location {
+            color: #777;
+            font-size: 0.85em;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .add-form {
+            margin: 15px auto;
+            padding: 15px;
+            border: 1px solid #eaeaea;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-buttons {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .form-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .form-buttons button:hover {
+            background-color: #3d9140;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: normal;
+            color: #333;
+        }
+        
+        .back-button {
+            text-decoration: none;
+            font-size: 24px;
+            margin-right: 10px;
+            color: #333;
+        }
+        
+        .search-bar {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-left: 10px;
+        }
+        
+        .action-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        .action-buttons button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .image-upload-container {
+            width: 100%;
+            height: 150px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            transition: border-color 0.2s;
+        }
+        
+        .image-upload-container:hover {
+            border-color: #aaa;
+        }
+        
+        .image-upload-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .image-upload-container input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .data-export-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .data-export-box {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: auto;
+        }
+
+        .data-export-box textarea {
+            width: 100%;
+            height: 200px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+
+        .data-export-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .data-export-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .copy-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .close-button {
+            background-color: #f0f0f0;
+        }
+
+        .highlight {
+            background-color: yellow;
+            transition: background-color 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜索...">
+            <div class="action-buttons">
+                <button id="importButton">导入</button>
+                <button id="exportButton">导出</button>
+            </div>
+        </div>
+        <div class="header">
+            <a href="index.html" class="back-button">←</a>
+            <h1>韭菜成长日志</h1>
+        </div>
+        
+        <div class="add-form" id="addForm">
+            <div class="image-upload-container" id="imageUploadContainer">
+                <span class="add-icon">+</span>
+                <input type="file" id="itemImage" accept="image/*">
+            </div>
+            <div class="form-group">
+                <input type="text" id="itemName" placeholder="添加物品...">
+            </div>
+            <div class="form-group">
+                <input type="text" id="itemLocation" placeholder="位置...">
+            </div>
+            <div class="form-buttons">
+                <button id="addButton">添加</button>
+            </div>
+        </div>
+        
+        <div class="item-list" id="itemList">
+            <!-- 物品将通过JavaScript动态添加 -->
+        </div>
+    </div>
+
+    <div class="data-export-container" id="dataExportContainer">
+        <div class="data-export-box">
+            <h3>导出数据</h3>
+            <textarea id="exportDataTextarea" readonly></textarea>
+            <div class="data-export-buttons">
+                <button class="copy-button" id="copyButton">复制</button>
+                <button class="close-button" id="closeExportButton">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 存储物品数据
+        let items = JSON.parse(localStorage.getItem('investmentItems')) || [];
+        
+        // DOM元素
+        const itemList = document.getElementById('itemList');
+        const addForm = document.getElementById('addForm');
+        const itemNameInput = document.getElementById('itemName');
+        const itemLocationInput = document.getElementById('itemLocation');
+        let itemImageInput = document.getElementById('itemImage');
+        const addButton = document.getElementById('addButton');
+        const searchInput = document.getElementById('searchInput');
+        const importButton = document.getElementById('importButton');
+        const exportButton = document.getElementById('exportButton');
+        const imageUploadContainer = document.getElementById('imageUploadContainer');
+        const dataExportContainer = document.getElementById('dataExportContainer');
+        const exportDataTextarea = document.getElementById('exportDataTextarea');
+        const copyButton = document.getElementById('copyButton');
+        const closeExportButton = document.getElementById('closeExportButton');
+        
+        let selectedImageDataUrl = null;
+        let currentHighlightedItem = null;
+        
+        // 显示所有物品
+        function displayItems(itemsToDisplay = items) {
+            itemList.innerHTML = '';
+            
+            itemsToDisplay.forEach((item, index) => {
+                const itemCard = document.createElement('div');
+                itemCard.className = 'item-card';
+                itemCard.dataset.index = index;
+                itemCard.id = `item-${index}`;
+                
+                let imageHtml = `<div class="item-image-container"><span class="add-icon">+</span></div>`;
+                if (item.image) {
+                    imageHtml = `<div class="item-image-container"><img src="${item.image}" alt="${item.name}" class="item-image"></div>`;
+                }
+                
+                itemCard.innerHTML = `
+                    <div class="delete-button">×</div>
+                    ${imageHtml}
+                    <h3 class="editable item-name" title="${item.name}" data-original="${item.name}">${item.name}</h3>
+                    <div class="item-details">
+                        <div class="editable item-location" title="位置: ${item.location || '未指定'}" data-original="${item.location || ''}">${item.location ? '位置: ' + item.location : '位置: 未指定'}</div>
+                    </div>
+                `;
+                
+                // 获取删除按钮并添加点击事件
+                const deleteButton = itemCard.querySelector('.delete-button');
+                deleteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteItem(index);
+                });
+                
+                // 获取可编辑元素
+                const nameElement = itemCard.querySelector('.item-name');
+                const locationElement = itemCard.querySelector('.item-location');
+                
+                // 为名称添加双击编辑事件
+                nameElement.addEventListener('dblclick', function(e) {
+                    e.stopPropagation();
+                    makeEditable(this, index, 'name');
+                });
+                
+                // 为位置添加双击编辑事件
+                locationElement.addEventListener('dblclick', function(e) {
+                    e.stopPropagation();
+                    makeEditable(this, index, 'location');
+                });
+                
+                itemList.appendChild(itemCard);
+            });
+        }
+        
+        // 使元素可编辑
+        function makeEditable(element, itemIndex, field) {
+            const originalValue = element.dataset.original;
+            const displayValue = field === 'location' ? originalValue : element.textContent;
+            
+            // 创建输入框
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = displayValue;
+            input.className = 'editing';
+            
+            // 替换原始元素
+            element.innerHTML = '';
+            element.appendChild(input);
+            element.classList.add('editing');
+            
+            // 聚焦输入框
+            input.focus();
+            
+            // 处理失去焦点事件
+            input.addEventListener('blur', function() {
+                saveEdit(element, itemIndex, field, input.value);
+            });
+            
+            // 处理回车键
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveEdit(element, itemIndex, field, input.value);
+                }
+            });
+        }
+        
+        // 保存编辑
+        function saveEdit(element, itemIndex, field, value) {
+            value = value.trim();
+            
+            // 更新数据
+            if (field === 'name') {
+                if (value) {
+                    items[itemIndex].name = value;
+                    element.textContent = value;
+                    element.title = value;
+                    element.dataset.original = value;
+                } else {
+                    // 如果名称为空，恢复原值
+                    element.textContent = element.dataset.original;
+                }
+            } else if (field === 'location') {
+                items[itemIndex].location = value;
+                element.textContent = value ? '位置: ' + value : '位置: 未指定';
+                element.title = '位置: ' + (value || '未指定');
+                element.dataset.original = value;
+            }
+            
+            // 移除编辑状态
+            element.classList.remove('editing');
+            
+            // 保存更改
+            saveItems();
+        }
+        
+        // 删除物品
+        function deleteItem(index) {
+            if (confirm('确定要删除这个物品吗？')) {
+                items.splice(index, 1);
+                saveItems();
+                displayItems();
+            }
+        }
+        
+        // 添加新物品
+        function addItem() {
+            const name = itemNameInput.value.trim();
+            const location = itemLocationInput.value.trim();
+            
+            if (!name) {
+                alert('请输入物品名称');
+                return;
+            }
+            
+            const newItem = {
+                name,
+                location,
+                image: selectedImageDataUrl,
+                dateAdded: new Date().toISOString()
+            };
+            
+            items.push(newItem);
+            saveItems();
+            displayItems();
+            
+            // 重置表单
+            itemNameInput.value = '';
+            itemLocationInput.value = '';
+            selectedImageDataUrl = null;
+            imageUploadContainer.innerHTML = '<span class="add-icon">+</span><input type="file" id="itemImage" accept="image/*">';
+            itemImageInput = document.getElementById('itemImage');
+            setupImageUpload();
+        }
+        
+        // 保存物品到本地存储
+        function saveItems() {
+            localStorage.setItem('investmentItems', JSON.stringify(items));
+        }
+        
+        // 搜索物品
+        function searchItems(query) {
+            if (!query) {
+                displayItems();
+                return;
+            }
+            
+            const filteredItems = items.filter(item => 
+                item.name.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            displayItems(filteredItems);
+        }
+
+        // 高亮显示搜索到的物品
+        function highlightItem(index) {
+            if (currentHighlightedItem) {
+                currentHighlightedItem.classList.remove('highlight');
+            }
+            
+            const itemCard = document.getElementById(`item-${index}`);
+            if (itemCard) {
+                itemCard.classList.add('highlight');
+                currentHighlightedItem = itemCard;
+                
+                // 滚动到高亮物品
+                itemCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        // 导出数据
+        function exportData() {
+            const dataStr = JSON.stringify(items, null, 2);
+            exportDataTextarea.value = dataStr;
+            dataExportContainer.style.display = 'flex';
+        }
+        
+        // 导入数据
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = event => {
+                    try {
+                        const importedItems = JSON.parse(event.target.result);
+                        if (Array.isArray(importedItems)) {
+                            if (confirm(`确定要导入${importedItems.length}个物品吗？这将覆盖现有数据。`)) {
+                                items = importedItems;
+                                saveItems();
+                                displayItems();
+                                alert('导入成功！');
+                            }
+                        } else {
+                            alert('导入的文件格式不正确！');
+                        }
+                    } catch (error) {
+                        alert('导入失败：' + error.message);
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+        
+        // 设置图片上传预览
+        function setupImageUpload() {
+            itemImageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        selectedImageDataUrl = event.target.result;
+                        imageUploadContainer.innerHTML = `
+                            <img src="${selectedImageDataUrl}" alt="预览">
+                            <input type="file" id="itemImage" accept="image/*">
+                        `;
+                        itemImageInput = document.getElementById('itemImage');
+                        setupImageUpload();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // 事件监听器
+        addButton.addEventListener('click', addItem);
+        
+        // 也支持按回车键添加
+        itemNameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addItem();
+            }
+        });
+        
+        itemLocationInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addItem();
+            }
+        });
+        
+        searchInput.addEventListener('input', (e) => {
+            searchItems(e.target.value);
+        });
+
+        // 搜索回车事件
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim().toLowerCase();
+                if (query) {
+                    const index = items.findIndex(item => 
+                        item.name.toLowerCase().includes(query)
+                    );
+                    if (index !== -1) {
+                        highlightItem(index);
+                    }
+                }
+            }
+        });
+        
+        importButton.addEventListener('click', importData);
+        exportButton.addEventListener('click', exportData);
+
+        // 复制数据
+        copyButton.addEventListener('click', () => {
+            exportDataTextarea.select();
+            document.execCommand('copy');
+            alert('数据已复制到剪贴板！');
+        });
+
+        // 关闭导出框
+        closeExportButton.addEventListener('click', () => {
+            dataExportContainer.style.display = 'none';
+        });
+        
+        // 初始化
+        setupImageUpload();
+        displayItems();
+    </script>
+</body>
+</html> 
