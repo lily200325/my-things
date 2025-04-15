@@ -4,32 +4,39 @@ on:
   push:
     paths:
       - '**.zip'
+  # 添加手动触发选项
+  workflow_dispatch:
 
 jobs:
   unzip:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 明确给予写入权限
     steps:
       - uses: actions/checkout@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # 使用 token 进行身份验证
           fetch-depth: 0  # 获取完整历史记录
       
       - name: 查找并解压ZIP文件
         run: |
-          for zipfile in $(find . -name "*.zip"); do
-            echo "正在解压 $zipfile"
+          # 列出所有 zip 文件
+          find . -name "*.zip" -type f | while read zipfile; do
+            echo "正在处理: $zipfile"
             dirname=$(dirname "$zipfile")
             basename=$(basename "$zipfile" .zip)
-            mkdir -p "$dirname/$basename"
-            unzip -o "$zipfile" -d "$dirname/$basename"
-            # 删除原始zip文件（可选）
-            # rm "$zipfile"
+            # 替换文件名中的空格
+            target_dir="${dirname}/${basename//' '/_}"
+            echo "解压到目录: $target_dir"
+            mkdir -p "$target_dir"
+            unzip -o "$zipfile" -d "$target_dir" || echo "解压 $zipfile 失败"
           done
           
       - name: 提交解压后的文件
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
           git add .
           git status
-          git commit -m "自动解压ZIP文件" || echo "没有变更需要提交"
+          git diff --staged --quiet || git commit -m "自动解压ZIP文件"
           git push
