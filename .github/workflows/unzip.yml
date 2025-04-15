@@ -10,14 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # 获取完整历史记录
       
       - name: 查找并解压ZIP文件
         run: |
           for zipfile in $(find . -name "*.zip"); do
+            echo "正在解压 $zipfile"
             dirname=$(dirname "$zipfile")
             basename=$(basename "$zipfile" .zip)
             mkdir -p "$dirname/$basename"
             unzip -o "$zipfile" -d "$dirname/$basename"
+            # 删除原始zip文件（可选）
+            # rm "$zipfile"
           done
           
       - name: 提交解压后的文件
@@ -25,5 +30,6 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
+          git status
           git commit -m "自动解压ZIP文件" || echo "没有变更需要提交"
           git push
