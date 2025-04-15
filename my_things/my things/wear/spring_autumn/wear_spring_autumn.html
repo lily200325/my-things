@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>春秋衣物</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <style>
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .category-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #333;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .category-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .category-name {
+            font-weight: 500;
+        }
+
+        .subcategory {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="../index.html" class="back-button">←</a>
+            <h1>春秋衣物</h1>
+        </div>
+        
+        <div class="category-grid">
+            <a href="wear_spring_autumn_jacket.html" class="category-card">
+                <div class="category-icon">🧥</div>
+                <div class="category-name">外套</div>
+            </a>
+            
+            <a href="wear_spring_autumn_base.html" class="category-card">
+                <div class="category-icon">👕</div>
+                <div class="category-name">打底</div>
+            </a>
+            
+            <a href="wear_spring_autumn_coat.html" class="category-card">
+                <div class="category-icon">🧥</div>
+                <div class="category-name">大衣</div>
+            </a>
+            
+            <a href="wear_spring_autumn_pants.html" class="category-card">
+                <div class="category-icon">👖</div>
+                <div class="category-name">裤子</div>
+            </a>
+            
+            <a href="wear_spring_autumn_vest.html" class="category-card">
+                <div class="category-icon">🦺</div>
+                <div class="category-name">马甲</div>
+            </a>
+            
+            <a href="wear_spring_autumn_shirt.html" class="category-card">
+                <div class="category-icon">👔</div>
+                <div class="category-name">衬衫</div>
+            </a>
+            
+            <a href="wear_spring_autumn_sweater.html" class="category-card">
+                <div class="category-icon">🧶</div>
+                <div class="category-name">毛衣</div>
+            </a>
+            
+            <a href="wear_spring_autumn_leggings.html" class="category-card">
+                <div class="category-icon">👖</div>
+                <div class="category-name">打底裤</div>
+            </a>
+            
+            <a href="wear_spring_autumn_suit.html" class="category-card">
+                <div class="category-icon">👚</div>
+                <div class="category-name">套装</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

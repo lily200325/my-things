@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>连衣裙</title>
+    <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" placeholder="搜索...">
+            <div class="action-buttons">
+                <button class="export-btn" onclick="exportData()">导出</button>
+                <button onclick="importData()">导入</button>
+            </div>
+        </div>
+        <div class="header">
+            <a href="wear_summer.html" class="back-button">←</a>
+            <h1>连衣裙</h1>
+        </div>
+
+        <!-- 添加物品按钮 -->
+        <button class="add-item-button" onclick="showAddForm()">+ 添加衣物</button>
+
+        <!-- 物品展示区域 -->
+        <div class="items-container">
+            <!-- 添加新物品的卡片 -->
+            <div class="item-card add-new-card" style="display: none;">
+                <div class="image-upload" onclick="document.getElementById('imageUpload').click()">
+                    <input type="file" accept="image/*" id="imageUpload" onchange="previewImage(event)">
+                    <div class="placeholder">
+                        <span class="emoji">📸</span>
+                        <p>点击添加图片</p>
+                    </div>
+                </div>
+                <input type="text" class="location-input" placeholder="输入位置...">
+                <button class="save-button" onclick="saveItem()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出数据弹窗 -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h3>导出数据</h3>
+            <textarea id="exportData" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="copy-btn" onclick="copyExportData()">复制</button>
+                <button class="close-btn" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 存储所有物品数据
+        let items = JSON.parse(localStorage.getItem('summer_dress') || '[]');
+        
+        // 初始化页面时加载已有数据
+        window.onload = function() {
+            items.forEach(item => addItemToDOM(item));
+        }
+
+        // 显示添加表单
+        function showAddForm() {
+            document.querySelector('.add-new-card').style.display = 'block';
+        }
+
+        // 预览图片
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const placeholder = document.querySelector('.placeholder');
+                    placeholder.innerHTML = `<img src="${e.target.result}" class="image-preview">`;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 保存物品
+        function saveItem() {
+            const locationInput = document.querySelector('.location-input');
+            const imageData = document.querySelector('.image-preview')?.src;
+            
+            if (!imageData || !locationInput.value) {
+                alert('请添加图片和位置信息');
+                return;
+            }
+
+            const item = {
+                id: Date.now(),
+                location: locationInput.value,
+                image: imageData
+            };
+
+            items.push(item);
+            // 保存到localStorage
+            localStorage.setItem('summer_dress', JSON.stringify(items));
+            addItemToDOM(item);
+
+            // 重置表单
+            document.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
+            locationInput.value = '';
+            document.querySelector('.add-new-card').style.display = 'none';
+        }
+
+        // 将物品添加到页面
+        function addItemToDOM(item) {
+            const newCard = document.createElement('div');
+            newCard.className = 'item-card';
+            newCard.dataset.id = item.id;
+            newCard.innerHTML = `
+                <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
+                <div class="image-container">
+                    <img src="${item.image}" alt="物品图片" class="image-preview">
+                </div>
+                <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
+            `;
+
+            document.querySelector('.items-container').insertBefore(
+                newCard,
+                document.querySelector('.add-new-card')
+            );
+        }
+
+        // 删除物品
+        function deleteItem(id) {
+            if (confirm('确定要删除这个物品吗？')) {
+                items = items.filter(item => item.id !== id);
+                // 更新localStorage
+                localStorage.setItem('summer_dress', JSON.stringify(items));
+                document.querySelector(`[data-id="${id}"]`).remove();
+            }
+        }
+
+        // 使文本可编辑
+        function makeEditable(element) {
+            element.contentEditable = true;
+            element.classList.add('editing');
+            element.focus();
+
+            const originalText = element.textContent;
+            
+            function saveEdit() {
+                element.contentEditable = false;
+                element.classList.remove('editing');
+                const itemId = parseInt(element.parentElement.dataset.id);
+                const item = items.find(item => item.id === itemId);
+                if (item) {
+                    item.location = element.textContent;
+                    // 更新localStorage
+                    localStorage.setItem('summer_dress', JSON.stringify(items));
+                }
+            }
+
+            function cancelEdit() {
+                element.textContent = originalText;
+                element.contentEditable = false;
+                element.classList.remove('editing');
+            }
+
+            element.addEventListener('blur', saveEdit);
+            element.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                } else if (e.key === 'Escape') {
+                    cancelEdit();
+                }
+            });
+        }
+
+        // 导出数据
+        function exportData() {
+            const modal = document.getElementById('exportModal');
+            const textarea = document.getElementById('exportData');
+            const exportData = {
+                type: '连衣裙',
+                items: items
+            };
+            textarea.value = JSON.stringify(exportData, null, 2);
+            modal.style.display = 'flex';
+        }
+
+        // 导入数据
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData.type === '连衣裙' && Array.isArray(importedData.items)) {
+                            items = importedData.items;
+                            // 保存到localStorage
+                            localStorage.setItem('summer_dress', JSON.stringify(items));
+                            // 清空现有物品
+                            const container = document.querySelector('.items-container');
+                            while (container.firstChild) {
+                                if (container.firstChild.classList.contains('add-new-card')) break;
+                                container.removeChild(container.firstChild);
+                            }
+                            // 添加导入的物品
+                            items.forEach(item => addItemToDOM(item));
+                        } else {
+                            alert('无效的数据格式');
+                        }
+                    } catch (error) {
+                        alert('导入失败：' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // 复制导出数据
+        function copyExportData() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('exportModal').style.display = 'none';
+        }
+
+        // 点击弹窗外部关闭弹窗
+        window.onclick = function(event) {
+            const modal = document.getElementById('exportModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首饰</title>
+    <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" placeholder="搜索...">
+            <div class="action-buttons">
+                <button class="export-btn" onclick="exportData()">导出</button>
+                <button onclick="importData()">导入</button>
+            </div>
+        </div>
+        <div class="header">
+            <a href="../index.html" class="back-button">←</a>
+        </div>
+
+        <div class="category-list">
+            <a href="wear_jewelry_headwear.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">👑</span>
+                    <span class="category-name">头饰</span>
+                </div>
+            </a>
+            <a href="wear_jewelry_earring.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">👂</span>
+                    <span class="category-name">耳饰</span>
+                </div>
+            </a>
+            <a href="wear_jewelry_bracelet.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">⌚</span>
+                    <span class="category-name">手链（镯）</span>
+                </div>
+            </a>
+            <a href="wear_jewelry_ring.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">💍</span>
+                    <span class="category-name">戒指</span>
+                </div>
+            </a>
+            <a href="wear_jewelry_necklace.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">📿</span>
+                    <span class="category-name">项链（圈）</span>
+                </div>
+            </a>
+            <a href="wear_jewelry_brooch.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">🔰</span>
+                    <span class="category-name">胸针</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 导出数据弹窗 -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h3>导出数据</h3>
+            <textarea id="exportData" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="copy-btn" onclick="copyExportData()">复制</button>
+                <button class="close-btn" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 切换子分类显示/隐藏
+        function toggleSubCategories(element) {
+            const subCategories = element.querySelector('.sub-categories');
+            if (subCategories) {
+                const isHidden = subCategories.style.display === 'none';
+                subCategories.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+
+        // 导出数据
+        function exportData() {
+            const modal = document.getElementById('exportModal');
+            const textarea = document.getElementById('exportData');
+            const exportData = {
+                type: '首饰',
+                categories: [
+                    {
+                        name: '头饰',
+                        subCategories: ['发圈', '发夹', '发卡', '发带', '簪子']
+                    },
+                    '耳饰',
+                    '手链（镯）',
+                    '戒指',
+                    '项链（圈）',
+                    '胸针'
+                ]
+            };
+            textarea.value = JSON.stringify(exportData, null, 2);
+            modal.style.display = 'flex';
+        }
+
+        // 导入数据
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData.type === '首饰' && Array.isArray(importedData.categories)) {
+                            alert('导入成功');
+                        } else {
+                            alert('无效的数据格式');
+                        }
+                    } catch (error) {
+                        alert('导入失败：' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // 复制导出数据
+        function copyExportData() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('exportModal').style.display = 'none';
+        }
+
+        // 点击弹窗外部关闭弹窗
+        window.onclick = function(event) {
+            const modal = document.getElementById('exportModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+
+    <style>
+        .sub-categories {
+            margin-left: 20px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .sub-category-item {
+            display: block;
+            padding: 8px;
+            margin: 5px 0;
+            text-decoration: none;
+            color: inherit;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .sub-category-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</body>
+</html> 
