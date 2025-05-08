@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>my things</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="搜索..." onkeypress="handleSearch(event)">
+            <div class="action-buttons">
+                <button class="export-btn" onclick="exportAllData()">导出</button>
+                <button onclick="importAllData()">导入</button>
+            </div>
+        </div>
+        <div class="header">
+            <h1>我的物品管理</h1>
+        </div>
+        <div class="category-list">
+            <a href="wear/index.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">👗</span>
+                    <span class="category-name">穿戴类</span>
+                </div>
+            </a>
+            <a href="bodycare/index.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">🧴</span>
+                    <span class="category-name">身体护理类</span>
+                </div>
+            </a>
+            <a href="daily/index.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">🏠</span>
+                    <span class="category-name">日用品类</span>
+                </div>
+            </a>
+            <a href="office/index.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">📚</span>
+                    <span class="category-name">办公用品类</span>
+                </div>
+            </a>
+            <a href="hobby/index.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">🎨</span>
+                    <span class="category-name">兴趣爱好类</span>
+                </div>
+            </a>
+            <a href="growth/index.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">🌱</span>
+                    <span class="category-name">韭菜成长日志</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 导出数据弹窗 -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h3>导出数据</h3>
+            <textarea id="exportData" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="copy-btn" onclick="copyExportData()">复制</button>
+                <button class="close-btn" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 定义所有可能的localStorage键
+        const allStorageKeys = [
+            // 穿戴类
+            'wear_winter', 'wear_summer', 'wear_spring_autumn',
+            'wear_shoes', 'wear_underwear',
+            'wear_jewelry_earrings', 'wear_jewelry_necklace', 
+            'wear_jewelry_bracelet', 'wear_jewelry_ring', 'wear_jewelry_brooch',
+            'wear_accessories',
+            
+            // 身体护理类
+            'bodycare_hand', 'bodycare_lip', 'bodycare_face',
+            
+            // 日用品类
+            'daily_kitchen', 'daily_winter', 'daily_summer',
+            'daily_card', 'daily_container', 'daily_souvenir',
+            'daily_other',
+            
+            // 办公用品类
+            'office_pen', 'office_other',
+            
+            // 兴趣爱好类
+            'hobby_photo', 'hobby_photo_tools', 'hobby_photo_props',
+            'hobby_photo_stand', 'hobby_photo_light',
+            'hobby_sewing', 'hobby_sports', 'hobby_music',
+            'hobby_drawing', 'hobby_calligraphy',
+            
+            // 成长日志
+            'growth'
+        ];
+
+        // 导出所有数据
+        function exportAllData() {
+            const allData = {};
+            let hasData = false;
+            
+            console.log('开始导出数据...');
+            console.log('localStorage 总条目数:', localStorage.length);
+            
+            // 收集所有localStorage中的数据
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log('正在处理键:', key);
+                
+                // 修改匹配规则，接受所有Items结尾的键名
+                if (key.endsWith('Items') || key === 'growth' || 
+                    key.match(/^(wear|bodycare|daily|office|hobby)_/)) {
+                    try {
+                        const data = localStorage.getItem(key);
+                        console.log(`键 ${key} 的原始数据:`, data);
+                        
+                        if (data) {
+                            const parsedData = JSON.parse(data);
+                            console.log(`键 ${key} 的解析后数据:`, parsedData);
+                            
+                            // 接受任何有效的数组数据
+                            if (Array.isArray(parsedData)) {
+                                allData[key] = parsedData;
+                                hasData = true;
+                                console.log(`成功添加键 ${key} 的数据`);
+                            } else {
+                                console.log(`跳过键 ${key} - 数据不是数组格式`);
+                            }
+                        }
+                    } catch (e) {
+                        console.error(`处理键 ${key} 时出错:`, e);
+                    }
+                } else {
+                    console.log(`跳过键 ${key} - 不符合命名规则`);
+                }
+            }
+            
+            console.log('最终收集的数据:', allData);
+            
+            if (!hasData) {
+                alert('没有找到可导出的数据');
+                return;
+            }
+
+            // 显示导出数据弹窗
+            const modal = document.getElementById('exportModal');
+            const textarea = document.getElementById('exportData');
+            textarea.value = JSON.stringify(allData, null, 2);
+            modal.style.display = 'flex';
+        }
+
+        // 导入所有数据
+        function importAllData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        // 修改验证规则，接受所有Items结尾的键名
+                        Object.keys(importedData).forEach(key => {
+                            if (!key.endsWith('Items') && 
+                                !key.match(/^(wear|bodycare|daily|office|hobby)_/) && 
+                                key !== 'growth') {
+                                throw new Error(`无效的数据键: ${key}`);
+                            }
+                        });
+                        
+                        // 导入数据
+                        Object.keys(importedData).forEach(key => {
+                            localStorage.setItem(key, JSON.stringify(importedData[key]));
+                        });
+                        
+                        alert('数据导入成功！');
+                    } catch (error) {
+                        alert('导入失败：' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // 复制导出数据
+        function copyExportData() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('exportModal').style.display = 'none';
+        }
+
+        // 点击弹窗外部关闭弹窗
+        window.onclick = function(event) {
+            const modal = document.getElementById('exportModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 处理搜索
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                let foundItems = [];
+                
+                // 搜索所有localStorage中的数据
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.match(/^(wear|bodycare|daily|office|hobby|growth)_/)) {
+                        try {
+                            const data = localStorage.getItem(key);
+                            if (data) {
+                                const parsedData = JSON.parse(data);
+                                const items = parsedData.items || parsedData;
+                                if (Array.isArray(items)) {
+                                    const matches = items.filter(item => 
+                                        item.location && item.location.toLowerCase().includes(searchTerm)
+                                    );
+                                    if (matches.length > 0) {
+                                        foundItems.push({
+                                            key: key,
+                                            items: matches
+                                        });
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error(`Error searching in ${key}:`, e);
+                        }
+                    }
+                }
+
+                if (foundItems.length > 0) {
+                    let message = '找到以下匹配项：\n\n';
+                    foundItems.forEach(category => {
+                        const categoryName = getCategoryName(category.key);
+                        message += `${categoryName}：\n`;
+                        category.items.forEach(item => {
+                            message += `- ${item.location}\n`;
+                        });
+                        message += '\n';
+                    });
+                    alert(message);
+                } else {
+                    alert('未找到匹配的物品');
+                }
+            }
+        }
+
+        // 获取分类名称
+        function getCategoryName(key) {
+            const categoryMap = {
+                // 穿戴类
+                'wear_winter': '冬季服装',
+                'wear_summer': '夏季服装',
+                'wear_spring_autumn': '春秋服装',
+                'wear_shoes': '鞋子',
+                'wear_underwear': '内衣',
+                'wear_jewelry_earrings': '耳环',
+                'wear_jewelry_necklace': '项链',
+                'wear_jewelry_bracelet': '手链',
+                'wear_jewelry_ring': '戒指',
+                'wear_jewelry_brooch': '胸针',
+                'wear_accessories': '配饰',
+                
+                // 身体护理类
+                'bodycare_hand': '护手',
+                'bodycare_lip': '护唇',
+                'bodycare_face': '护肤',
+                
+                // 日用品类
+                'daily_kitchen': '厨房用品',
+                'daily_winter': '冬季用品',
+                'daily_summer': '夏季用品',
+                'daily_card': '卡片',
+                'daily_container': '收纳用品',
+                'daily_souvenir': '纪念品',
+                'daily_other': '其他日用品',
+                
+                // 办公用品类
+                'office_pen': '笔类',
+                'office_other': '其他办公用品',
+                
+                // 兴趣爱好类
+                'hobby_photo': '摄影',
+                'hobby_photo_tools': '摄影器材',
+                'hobby_photo_props': '摄影道具',
+                'hobby_photo_stand': '摄影支架',
+                'hobby_photo_light': '摄影灯光',
+                'hobby_sewing': '缝纫',
+                'hobby_sports': '运动',
+                'hobby_music': '音乐',
+                'hobby_drawing': '绘画',
+                'hobby_calligraphy': '书法',
+                
+                // 成长日志
+                'growth': '成长记录'
+            };
+            return categoryMap[key] || key;
+        }
+    </script>
+</body>
+</html> 

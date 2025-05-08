@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>护肤品管理</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .category-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .category-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .category-name {
+            font-size: 1.2em;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="../index.html" class="back-button">←</a>
+            <h1>护肤品管理</h1>
+        </div>
+
+        <div class="category-grid">
+            <a href="hand/index.html" class="category-card">
+                <div class="category-icon">🖐️</div>
+                <h2 class="category-name">手部护理</h2>
+            </a>
+            
+            <a href="lip/index.html" class="category-card">
+                <div class="category-icon">👄</div>
+                <h2 class="category-name">唇部护理</h2>
+            </a>
+            
+            <a href="face/index.html" class="category-card">
+                <div class="category-icon">👩</div>
+                <h2 class="category-name">脸部护理</h2>
+            </a>
+        </div>
+    </div>
+</body>
+</html> 

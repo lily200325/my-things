@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鞋子</title>
+    <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" placeholder="搜索...">
+            <div class="action-buttons">
+                <button class="export-btn" onclick="exportAllData()">导出</button>
+                <button onclick="importData()">导入</button>
+            </div>
+        </div>
+        <div class="header">
+            <a href="../index.html" class="back-button">←</a>
+        </div>
+        <div class="category-list">
+            <a href="wear_shoes_sneakers.html" class="category-item" data-type="板鞋">
+                <div class="category-content">
+                    <span class="emoji">👟</span>
+                    <span class="category-name">板鞋</span>
+                </div>
+            </a>
+            <a href="wear_shoes_sports.html" class="category-item" data-type="运动鞋">
+                <div class="category-content">
+                    <span class="emoji">👟</span>
+                    <span class="category-name">运动鞋</span>
+                </div>
+            </a>
+            <a href="wear_shoes_casual.html" class="category-item" data-type="休闲鞋">
+                <div class="category-content">
+                    <span class="emoji">👟</span>
+                    <span class="category-name">休闲鞋</span>
+                </div>
+            </a>
+            <a href="wear_shoes_sandals.html" class="category-item" data-type="拖鞋">
+                <div class="category-content">
+                    <span class="emoji">🩴</span>
+                    <span class="category-name">拖（凉）鞋</span>
+                </div>
+            </a>
+            <a href="wear_shoes_boots.html" class="category-item" data-type="靴子">
+                <div class="category-content">
+                    <span class="emoji">👢</span>
+                    <span class="category-name">靴子</span>
+                </div>
+            </a>
+            <a href="wear_shoes_leather.html" class="category-item" data-type="皮鞋">
+                <div class="category-content">
+                    <span class="emoji">👞</span>
+                    <span class="category-name">皮鞋</span>
+                </div>
+            </a>
+            <a href="wear_shoes_slippers.html" class="category-item" data-type="棉拖鞋">
+                <div class="category-content">
+                    <span class="emoji">🥿</span>
+                    <span class="category-name">棉（拖）鞋</span>
+                </div>
+            </a>
+            <a href="wear_shoes_dance.html" class="category-item" data-type="舞鞋">
+                <div class="category-content">
+                    <span class="emoji">👠</span>
+                    <span class="category-name">舞鞋</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 导出数据弹窗 -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h3>导出数据</h3>
+            <textarea id="exportData" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="copy-btn" onclick="copyExportData()">复制</button>
+                <button class="close-btn" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 从localStorage获取数据
+        function getItemsFromStorage(type) {
+            const data = localStorage.getItem(`shoes_${type}`);
+            return data ? JSON.parse(data) : [];
+        }
+
+        // 导出所有数据
+        async function exportAllData() {
+            const allData = {
+                type: "鞋子",
+                categories: {
+                    "板鞋": getItemsFromStorage("sneakers"),
+                    "运动鞋": getItemsFromStorage("sports"),
+                    "休闲鞋": getItemsFromStorage("casual"),
+                    "拖鞋": getItemsFromStorage("sandals"),
+                    "靴子": getItemsFromStorage("boots"),
+                    "皮鞋": getItemsFromStorage("leather"),
+                    "棉拖鞋": getItemsFromStorage("slippers"),
+                    "舞鞋": getItemsFromStorage("dance")
+                }
+            };
+
+            const modal = document.getElementById('exportModal');
+            const textarea = document.getElementById('exportData');
+            textarea.value = JSON.stringify(allData, null, 2);
+            modal.style.display = 'flex';
+        }
+
+        // 导入数据
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData.type === "鞋子" && importedData.categories) {
+                            // 保存到localStorage
+                            Object.entries(importedData.categories).forEach(([type, items]) => {
+                                const storageKey = `shoes_${type.toLowerCase().replace(/[^a-z]/g, '')}`;
+                                localStorage.setItem(storageKey, JSON.stringify(items));
+                            });
+                            alert('导入成功！');
+                        } else {
+                            alert('无效的数据格式');
+                        }
+                    } catch (error) {
+                        alert('导入失败：' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // 复制导出数据
+        function copyExportData() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('exportModal').style.display = 'none';
+        }
+
+        // 点击弹窗外部关闭弹窗
+        window.onclick = function(event) {
+            const modal = document.getElementById('exportModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html> 

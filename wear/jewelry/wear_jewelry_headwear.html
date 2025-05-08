@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>头饰</title>
+    <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-bar">
+            <input type="text" placeholder="搜索...">
+            <div class="action-buttons">
+                <button class="export-btn" onclick="exportData()">导出</button>
+                <button onclick="importData()">导入</button>
+            </div>
+        </div>
+        <div class="header">
+            <a href="wear_jewelry.html" class="back-button">←</a>
+        </div>
+
+        <div class="category-list">
+            <a href="headwear/wear_jewelry_hairband.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">🎀</span>
+                    <span class="category-name">发圈</span>
+                </div>
+            </a>
+            <a href="headwear/wear_jewelry_hairclip.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">📎</span>
+                    <span class="category-name">发夹</span>
+                </div>
+            </a>
+            <a href="headwear/wear_jewelry_hairpin.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">📌</span>
+                    <span class="category-name">发卡</span>
+                </div>
+            </a>
+            <a href="headwear/wear_jewelry_headband.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">🎀</span>
+                    <span class="category-name">发带</span>
+                </div>
+            </a>
+            <a href="headwear/wear_jewelry_hairstick.html" class="category-item">
+                <div class="category-content">
+                    <span class="emoji">📍</span>
+                    <span class="category-name">簪子</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 导出数据弹窗 -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h3>导出数据</h3>
+            <textarea id="exportData" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="copy-btn" onclick="copyExportData()">复制</button>
+                <button class="close-btn" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 导出数据
+        function exportData() {
+            const modal = document.getElementById('exportModal');
+            const textarea = document.getElementById('exportData');
+            const exportData = {
+                type: '头饰',
+                categories: ['发圈', '发夹', '发卡', '发带', '簪子']
+            };
+            textarea.value = JSON.stringify(exportData, null, 2);
+            modal.style.display = 'flex';
+        }
+
+        // 导入数据
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (importedData.type === '头饰' && Array.isArray(importedData.categories)) {
+                            alert('导入成功');
+                        } else {
+                            alert('无效的数据格式');
+                        }
+                    } catch (error) {
+                        alert('导入失败：' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // 复制导出数据
+        function copyExportData() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('exportModal').style.display = 'none';
+        }
+
+        // 点击弹窗外部关闭弹窗
+        window.onclick = function(event) {
+            const modal = document.getElementById('exportModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html> 
