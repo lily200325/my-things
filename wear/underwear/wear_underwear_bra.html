@@ -8,35 +8,13 @@
 </head>
 <body>
     <div class="container">
-        <div class="search-bar">
-            <input type="text" placeholder="搜索...">
-            <div class="action-buttons">
-                <button class="export-btn" onclick="exportData()">导出</button>
-                <button onclick="importData()">导入</button>
-            </div>
+        <h1>胸罩管理</h1>
+        <div class="add-item-form">
+            <input type="file" accept="image/*" id="imageInput" />
+            <input type="text" id="locationInput" placeholder="输入位置..." />
+            <button id="addBtn">添加衣物</button>
         </div>
-        <div class="header">
-            <a href="wear_underwear.html" class="back-button">←</a>
-        </div>
-
-        <!-- 添加物品按钮 -->
-        <button class="add-item-button" onclick="showAddForm()">+ 添加衣物</button>
-
-        <!-- 物品展示区域 -->
-        <div class="items-container">
-            <!-- 添加新物品的卡片 -->
-            <div class="item-card add-new-card" style="display: none;">
-                <div class="image-upload" onclick="document.getElementById('imageUpload').click()">
-                    <input type="file" accept="image/*" id="imageUpload" onchange="previewImage(event)">
-                    <div class="placeholder">
-                        <span class="emoji">📸</span>
-                        <p>点击添加图片</p>
-                    </div>
-                </div>
-                <input type="text" class="location-input" placeholder="输入位置...">
-                <button class="save-button" onclick="saveItem()">保存</button>
-            </div>
-        </div>
+        <div id="itemsContainer" class="items-container"></div>
     </div>
 
     <!-- 导出数据弹窗 -->
@@ -52,124 +30,56 @@
     </div>
 
     <script>
-        // 存储所有物品数据
         let items = JSON.parse(localStorage.getItem('underwear_bra') || '[]');
-        
-        // 初始化页面时加载已有数据
-        window.onload = function() {
-            items.forEach(item => addItemToDOM(item));
+
+        function renderItems() {
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+            items.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <img src="${item.image}" class="image-preview" style="max-width:100px;max-height:100px;display:block;margin-bottom:8px;" />
+                    <div class="location-text" contenteditable="true" onblur="updateLocation(${idx}, this.textContent)">${item.location}</div>
+                    <button onclick="deleteItem(${idx})">删除</button>
+                `;
+                container.appendChild(card);
+            });
         }
 
-        // 显示添加表单
-        function showAddForm() {
-            document.querySelector('.add-new-card').style.display = 'block';
+        window.updateLocation = function(idx, newLoc) {
+            items[idx].location = newLoc;
+            localStorage.setItem('underwear_bra', JSON.stringify(items));
         }
 
-        // 预览图片
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const placeholder = document.querySelector('.placeholder');
-                    placeholder.innerHTML = `<img src="${e.target.result}" class="image-preview">`;
-                }
-                reader.readAsDataURL(file);
+        window.deleteItem = function(idx) {
+            if (confirm('确定要删除这个物品吗？')) {
+                items.splice(idx, 1);
+                localStorage.setItem('underwear_bra', JSON.stringify(items));
+                renderItems();
             }
         }
 
-        // 保存物品
-        function saveItem() {
-            const locationInput = document.querySelector('.location-input');
-            const imageData = document.querySelector('.image-preview')?.src;
-            
-            if (!imageData || !locationInput.value) {
+        document.getElementById('addBtn').onclick = function() {
+            const fileInput = document.getElementById('imageInput');
+            const locInput = document.getElementById('locationInput');
+            const file = fileInput.files[0];
+            if (!file || !locInput.value) {
                 alert('请添加图片和位置信息');
                 return;
             }
-
-            const item = {
-                id: Date.now(),
-                location: locationInput.value,
-                image: imageData
-            };
-
-            items.push(item);
-            // 保存到localStorage
-            localStorage.setItem('underwear_bra', JSON.stringify(items));
-            addItemToDOM(item);
-
-            // 重置表单
-            document.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
-            locationInput.value = '';
-            document.querySelector('.add-new-card').style.display = 'none';
-        }
-
-        // 将物品添加到页面
-        function addItemToDOM(item) {
-            const newCard = document.createElement('div');
-            newCard.className = 'item-card';
-            newCard.dataset.id = item.id;
-            newCard.innerHTML = `
-                <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
-                <div class="image-container">
-                    <img src="${item.image}" alt="物品图片" class="image-preview">
-                </div>
-                <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
-            `;
-
-            document.querySelector('.items-container').insertBefore(
-                newCard,
-                document.querySelector('.add-new-card')
-            );
-        }
-
-        // 删除物品
-        function deleteItem(id) {
-            if (confirm('确定要删除这个物品吗？')) {
-                items = items.filter(item => item.id !== id);
-                // 更新localStorage
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                items.push({ image: e.target.result, location: locInput.value });
                 localStorage.setItem('underwear_bra', JSON.stringify(items));
-                document.querySelector(`[data-id="${id}"]`).remove();
+                renderItems();
+                fileInput.value = '';
+                locInput.value = '';
             }
+            reader.readAsDataURL(file);
         }
 
-        // 使文本可编辑
-        function makeEditable(element) {
-            element.contentEditable = true;
-            element.classList.add('editing');
-            element.focus();
-
-            const originalText = element.textContent;
-            
-            function saveEdit() {
-                element.contentEditable = false;
-                element.classList.remove('editing');
-                const itemId = parseInt(element.parentElement.dataset.id);
-                const item = items.find(item => item.id === itemId);
-                if (item) {
-                    item.location = element.textContent;
-                    // 更新localStorage
-                    localStorage.setItem('underwear_bra', JSON.stringify(items));
-                }
-            }
-
-            function cancelEdit() {
-                element.textContent = originalText;
-                element.contentEditable = false;
-                element.classList.remove('editing');
-            }
-
-            element.addEventListener('blur', saveEdit);
-            element.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    saveEdit();
-                } else if (e.key === 'Escape') {
-                    cancelEdit();
-                }
-            });
-        }
+        renderItems();
 
         // 导出数据
         function exportData() {
@@ -205,7 +115,7 @@
                                 container.removeChild(container.firstChild);
                             }
                             // 添加导入的物品
-                            items.forEach(item => addItemToDOM(item));
+                            renderItems();
                         } else {
                             alert('无效的数据格式');
                         }

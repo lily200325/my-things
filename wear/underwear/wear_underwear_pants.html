@@ -62,7 +62,12 @@
 
         // 显示添加表单
         function showAddForm() {
-            document.querySelector('.add-new-card').style.display = 'block';
+            const addCard = document.querySelector('.add-new-card');
+            addCard.style.display = 'block';
+            addCard.querySelector('.save-button').disabled = true;
+            // 重置图片和输入框
+            addCard.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
+            addCard.querySelector('.location-input').value = '';
         }
 
         // 预览图片
@@ -71,8 +76,11 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const placeholder = document.querySelector('.placeholder');
+                    const addCard = document.querySelector('.add-new-card');
+                    const placeholder = addCard.querySelector('.placeholder');
                     placeholder.innerHTML = `<img src="${e.target.result}" class="image-preview">`;
+                    // 图片加载完成后启用保存按钮
+                    addCard.querySelector('.save-button').disabled = false;
                 }
                 reader.readAsDataURL(file);
             }
@@ -80,8 +88,9 @@
 
         // 保存物品
         function saveItem() {
-            const locationInput = document.querySelector('.location-input');
-            const imageData = document.querySelector('.image-preview')?.src;
+            const addCard = document.querySelector('.add-new-card');
+            const locationInput = addCard.querySelector('.location-input');
+            const imageData = addCard.querySelector('.image-preview')?.src;
             
             if (!imageData || !locationInput.value) {
                 alert('请添加图片和位置信息');
@@ -100,9 +109,12 @@
             addItemToDOM(item);
 
             // 重置表单
-            document.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
+            addCard.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
             locationInput.value = '';
-            document.querySelector('.add-new-card').style.display = 'none';
+            addCard.style.display = 'none';
+            addCard.querySelector('.save-button').disabled = true;
+            // 清空文件选择
+            addCard.querySelector('#imageUpload').value = '';
         }
 
         // 将物品添加到页面
