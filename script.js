@@ -753,3 +753,98 @@ window.addEventListener('scroll', () => {
     }
     lastScroll = currentScroll;
 });
+
+// 显示添加表单
+function showAddForm() {
+    const addNewCard = document.querySelector('.add-new-card');
+    if (addNewCard) {
+        addNewCard.style.display = 'block';
+        // 添加触摸事件支持
+        const imageUpload = document.getElementById('imageUpload');
+        if (imageUpload) {
+            imageUpload.addEventListener('touchstart', function(e) {
+                e.preventDefault(); // 阻止默认行为
+                this.click(); // 触发点击事件
+            }, { passive: false });
+        }
+    }
+}
+
+// 预览图片
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const placeholder = document.querySelector('.placeholder');
+            if (placeholder) {
+                placeholder.innerHTML = `<img src="${e.target.result}" class="image-preview">`;
+            }
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
+// 保存物品
+function saveItem() {
+    const locationInput = document.querySelector('.location-input');
+    const typeSelect = document.querySelector('.type-select');
+    const imageData = document.querySelector('.image-preview')?.src;
+    
+    if (!imageData || !locationInput.value) {
+        alert('请添加图片和位置信息');
+        return;
+    }
+
+    const item = {
+        id: Date.now(),
+        location: locationInput.value,
+        type: typeSelect ? typeSelect.value : null,
+        image: imageData
+    };
+
+    items.push(item);
+    // 保存到localStorage
+    localStorage.setItem(currentStorageKey, JSON.stringify(items));
+    addItemToDOM(item);
+
+    // 重置表单
+    const placeholder = document.querySelector('.placeholder');
+    if (placeholder) {
+        placeholder.innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
+    }
+    if (locationInput) {
+        locationInput.value = '';
+    }
+    const addNewCard = document.querySelector('.add-new-card');
+    if (addNewCard) {
+        addNewCard.style.display = 'none';
+    }
+}
+
+// 添加物品到DOM
+function addItemToDOM(item) {
+    const container = document.querySelector('.items-container');
+    if (!container) return;
+
+    const itemCard = document.createElement('div');
+    itemCard.className = 'item-card';
+    itemCard.innerHTML = `
+        <div class="image-container">
+            <img src="${item.image}" alt="物品图片">
+        </div>
+        <div class="location-text" contenteditable="true">${item.location}</div>
+        <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
+    `;
+
+    // 添加触摸事件支持
+    const locationText = itemCard.querySelector('.location-text');
+    if (locationText) {
+        locationText.addEventListener('touchstart', function(e) {
+            e.preventDefault(); // 阻止默认行为
+            this.focus(); // 聚焦输入框
+        }, { passive: false });
+    }
+
+    container.appendChild(itemCard);
+}

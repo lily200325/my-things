@@ -290,6 +290,7 @@ h1 {
     margin: 20px auto;
     display: block;
     transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent; /* 移除iOS点击高亮 */
 }
 
 .add-item-button:hover {
@@ -301,17 +302,29 @@ h1 {
     .item-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+    .add-item-button {
+        width: calc(33.33% - 40px);
+    }
 }
 
 @media (max-width: 900px) {
     .item-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    .add-item-button {
+        width: calc(50% - 40px);
+    }
 }
 
 @media (max-width: 600px) {
     .item-grid {
         grid-template-columns: 1fr;
+    }
+    .add-item-button {
+        width: 80%;
+        padding: 15px 30px; /* 增加按钮高度 */
+        font-size: 18px; /* 增大字体 */
+        margin: 20px auto;
     }
 }
 
