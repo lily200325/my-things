@@ -20,11 +20,17 @@
         .item-card .location-text { width: 100%; text-align: center; background: none; border: none; font-size: 15px; margin-top: 4px; }
         .item-card .location-text.editing { background: #fffbe6; border-radius: 4px; }
         .add-btn { background: #222; color: #fff; border: none; border-radius: 6px; padding: 8px 24px; font-size: 16px; cursor: pointer; margin-top: 8px; }
+        /* Added styles for export/import buttons */
+        /* .action-buttons { margin-bottom: 20px; text-align: center; }
+        .action-buttons button { margin: 0 5px; padding: 8px 16px; cursor: pointer; } */
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>袜子管理</h1>
+        <div class="header">
+            <a href="wear_underwear.html" class="back-button">←</a>
+            <h1>袜子管理</h1>
+        </div>
         <div class="add-item-form">
             <label class="image-upload-label" for="imageInput">
                 <span id="imagePlaceholder">📸</span>
@@ -36,68 +42,280 @@
         </div>
         <div id="itemsContainer" class="items-container"></div>
     </div>
+
     <script>
-        let items = JSON.parse(localStorage.getItem('underwear_socks') || '[]');
-        let imageData = '';
-        const imageInput = document.getElementById('imageInput');
-        const previewImg = document.getElementById('previewImg');
-        const imagePlaceholder = document.getElementById('imagePlaceholder');
-        imageInput.onchange = function(e) {
+        let db;
+        const request = indexedDB.open('ClothesDB', 4);
+
+        request.onerror = function(event) {
+            console.error('IndexedDB 数据库打开失败:', event.target.error);
+        };
+
+        request.onsuccess = function(event) {
+            console.log('IndexedDB: onsuccess 触发');
+            db = event.target.result;
+            console.log('IndexedDB: 数据库对象:', db);
+            renderItems();
+        };
+
+        request.onupgradeneeded = function(event) {
+            console.log('IndexedDB: onupgradeneeded 触发');
+            const db = event.target.result;
+            // Create summer object stores
+            if (!db.objectStoreNames.contains('dress_items')) {
+                console.log('IndexedDB: 创建 dress_items 对象存储');
+                db.createObjectStore('dress_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('shorts_items')) {
+                console.log('IndexedDB: 创建 shorts_items 对象存储');
+                db.createObjectStore('shorts_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('camisole_items')) {
+                console.log('IndexedDB: 创建 camisole_items 对象存储');
+                db.createObjectStore('camisole_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('sunproof_items')) {
+                console.log('IndexedDB: 创建 sunproof_items 对象存储');
+                db.createObjectStore('sunproof_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('skirt_items')) {
+                console.log('IndexedDB: 创建 skirt_items 对象存储');
+                db.createObjectStore('skirt_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('top_items')) {
+                console.log('IndexedDB: 创建 top_items 对象存储');
+                db.createObjectStore('top_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('swimwear_items')) {
+                console.log('IndexedDB: 创建 swimwear_items 对象存储');
+                db.createObjectStore('swimwear_items', { keyPath: 'id', autoIncrement: true });
+            }
+            // Create spring/autumn object stores
+            if (!db.objectStoreNames.contains('vest_items')) {
+                console.log('IndexedDB: 创建 vest_items 对象存储');
+                db.createObjectStore('vest_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('sweater_items')) {
+                console.log('IndexedDB: 创建 sweater_items 对象存储');
+                db.createObjectStore('sweater_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('suit_items')) {
+                console.log('IndexedDB: 创建 suit_items 对象存储');
+                db.createObjectStore('suit_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('pants_items')) {
+                console.log('IndexedDB: 创建 pants_items 对象存储');
+                db.createObjectStore('pants_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('leggings_items')) {
+                console.log('IndexedDB: 创建 leggings_items 对象存储');
+                db.createObjectStore('leggings_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('jacket_items')) {
+                console.log('IndexedDB: 创建 jacket_items 对象存储');
+                db.createObjectStore('jacket_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('shirt_items')) {
+                console.log('IndexedDB: 创建 shirt_items 对象存储');
+                db.createObjectStore('shirt_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('coat_items')) {
+                console.log('IndexedDB: 创建 coat_items 对象存储');
+                db.createObjectStore('coat_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('base_items')) {
+                console.log('IndexedDB: 创建 base_items 对象存储');
+                db.createObjectStore('base_items', { keyPath: 'id', autoIncrement: true });
+            }
+            // Create winter object stores
+            if (!db.objectStoreNames.contains('down_items')) {
+                console.log('IndexedDB: 创建 down_items 对象存储');
+                db.createObjectStore('down_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('underwear_items')) {
+                console.log('IndexedDB: 创建 underwear_items 对象存储');
+                db.createObjectStore('underwear_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('winter_pants_items')) {
+                console.log('IndexedDB: 创建 winter_pants_items 对象存储');
+                db.createObjectStore('winter_pants_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('winter_coat_items')) {
+                console.log('IndexedDB: 创建 winter_coat_items 对象存储');
+                db.createObjectStore('winter_coat_items', { keyPath: 'id', autoIncrement: true });
+            }
+            // Create underwear object stores
+            if (!db.objectStoreNames.contains('bra_items')) {
+                console.log('IndexedDB: 创建 bra_items 对象存储');
+                db.createObjectStore('bra_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('socks_items')) {
+                console.log('IndexedDB: 创建 socks_items 对象存储');
+                db.createObjectStore('socks_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (db.objectStoreNames.contains('clothes')) {
+                console.log('IndexedDB: clothes 对象存储已存在 (保留或删除)');
+                // db.deleteObjectStore('clothes');
+            }
+        };
+
+        function addCloth(image, location) {
+            const tx = db.transaction('socks_items', 'readwrite'); // Use socks_items
+            const store = tx.objectStore('socks_items'); // Use socks_items
+            store.add({ image, location });
+            tx.oncomplete = renderItems;
+        }
+
+        function renderItems() {
+            const tx = db.transaction('socks_items', 'readonly'); // Use socks_items
+            const store = tx.objectStore('socks_items'); // Use socks_items
+            const req = store.getAll();
+            req.onsuccess = function() {
+                const items = req.result;
+                const container = document.getElementById('itemsContainer');
+                container.innerHTML = '';
+                items.forEach((item) => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.dataset.id = item.id;
+                    card.innerHTML = `
+                <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
+                        <img src="${item.image}" class="image-preview" />
+                <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
+            `;
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        window.deleteItem = function(id) {
+            const tx = db.transaction('socks_items', 'readwrite'); // Use socks_items
+            const store = tx.objectStore('socks_items'); // Use socks_items
+            store.delete(id);
+            tx.oncomplete = renderItems;
+        }
+
+        // Add makeEditable function
+        function makeEditable(element) {
+            element.contentEditable = true;
+            element.classList.add('editing');
+            element.focus();
+
+            const originalText = element.textContent;
+            
+            function saveEdit() {
+                element.contentEditable = false;
+                element.classList.remove('editing');
+                const itemId = parseInt(element.closest('.item-card').dataset.id);
+                const newLocation = element.textContent;
+
+                const tx = db.transaction('socks_items', 'readwrite'); // Use socks_items
+                const store = tx.objectStore('socks_items'); // Use socks_items
+                store.get(itemId).onsuccess = function(event) {
+                    const item = event.target.result;
+                if (item) {
+                        item.location = newLocation;
+                        store.put(item);
+                        tx.oncomplete = renderItems;
+                    }
+                };
+            }
+
+            function cancelEdit() {
+                element.textContent = originalText;
+                element.contentEditable = false;
+                element.classList.remove('editing');
+            }
+
+            element.addEventListener('blur', saveEdit);
+            element.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                } else if (e.key === 'Escape') {
+                    cancelEdit();
+                }
+            });
+        }
+
+        document.getElementById('addBtn').onclick = function() {
+            const locInput = document.getElementById('locationInput');
+            const imageInput = document.getElementById('imageInput');
+            if (!imageInput.files[0] || !locInput.value) {
+                alert('请添加图片和位置信息');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                addCloth(ev.target.result, locInput.value);
+                // 重置表单
+                document.getElementById('previewImg').style.display = 'none';
+                document.getElementById('imagePlaceholder').style.display = 'block';
+                imageInput.value = '';
+                locInput.value = '';
+            }
+            reader.readAsDataURL(imageInput.files[0]);
+        }
+
+        document.getElementById('imageInput').onchange = function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(ev) {
-                    imageData = ev.target.result;
-                    previewImg.src = imageData;
-                    previewImg.style.display = 'block';
-                    imagePlaceholder.style.display = 'none';
+                    document.getElementById('previewImg').src = ev.target.result;
+                    document.getElementById('previewImg').style.display = 'block';
+                    document.getElementById('imagePlaceholder').style.display = 'none';
                 }
                 reader.readAsDataURL(file);
             }
         }
-        function renderItems() {
-            const container = document.getElementById('itemsContainer');
-            container.innerHTML = '';
-            items.forEach((item, idx) => {
-                const card = document.createElement('div');
-                card.className = 'item-card';
-                card.innerHTML = `
-                    <button class="delete-btn" onclick="deleteItem(${idx})">×</button>
-                    <img src="${item.image}" class="image-preview" />
-                    <div class="location-text" contenteditable="true" onblur="updateLocation(${idx}, this.textContent)">${item.location}</div>
-                `;
-                container.appendChild(card);
-            });
+
+        // Removed Export/Import Data functions
+        /*
+        function exportData() {
+             const tx = db.transaction('socks_items', 'readonly'); // Use socks_items
+             const store = tx.objectStore('socks_items'); // Use socks_items
+             const req = store.getAll();
+             req.onsuccess = function() {
+                 const items = req.result;
+// ... existing code ...
+                 downloadAnchorNode.remove();
+             }
         }
-        window.updateLocation = function(idx, newLoc) {
-            items[idx].location = newLoc;
-            localStorage.setItem('underwear_socks', JSON.stringify(items));
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+// ... existing code ...
+                                console.error('导入错误:', error);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         }
-        window.deleteItem = function(idx) {
-            if (confirm('确定要删除这个物品吗？')) {
-                items.splice(idx, 1);
-                localStorage.setItem('underwear_socks', JSON.stringify(items));
-                renderItems();
+        */
+
+        // Removed copyExportData and closeModal functions
+        /*
+        function copyExportData() {
+            const textarea = document.getElementById('exportData');
+            textarea.select();
+            document.execCommand('copy');
+            alert('已复制到剪贴板');
+        }
+
+        function closeModal() {
+            document.getElementById('exportModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('exportModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
             }
         }
-        document.getElementById('addBtn').onclick = function() {
-            const locInput = document.getElementById('locationInput');
-            if (!imageData || !locInput.value) {
-                alert('请添加图片和位置信息');
-                return;
-            }
-            items.push({ image: imageData, location: locInput.value });
-            localStorage.setItem('underwear_socks', JSON.stringify(items));
-            renderItems();
-            // 重置表单
-            imageData = '';
-            previewImg.src = '';
-            previewImg.style.display = 'none';
-            imagePlaceholder.style.display = 'block';
-            imageInput.value = '';
-            locInput.value = '';
-        }
-        renderItems();
+        */
     </script>
 </body>
 </html> 

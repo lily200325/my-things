@@ -5,136 +5,136 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>运动鞋</title>
     <link rel="stylesheet" href="../../styles.css">
+    <style>
+        body { background: #fafbfc; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 8px #eee; padding: 32px; }
+        h1 { text-align: center; margin-bottom: 24px; }
+        .add-item-form { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .add-item-form input[type="file"] { display: none; }
+        .image-upload-label { border: 2px dashed #bbb; border-radius: 8px; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #f5f5f5; }
+        .image-upload-label img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+        .items-container { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+        .item-card { background: #f7f7f7; border-radius: 10px; box-shadow: 0 1px 4px #eee; padding: 16px; width: 160px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .item-card img { max-width: 100px; max-height: 100px; border-radius: 8px; margin-bottom: 8px; }
+        .item-card .delete-btn { position: absolute; top: 8px; right: 8px; background: #fff; border: none; color: #e55; font-size: 18px; cursor: pointer; border-radius: 50%; width: 24px; height: 24px; line-height: 20px; }
+        .item-card .location-text { width: 100%; text-align: center; background: none; border: none; font-size: 15px; margin-top: 4px; }
+        .item-card .location-text.editing { background: #fffbe6; border-radius: 4px; }
+        .add-btn { background: #222; color: #fff; border: none; border-radius: 6px; padding: 8px 24px; font-size: 16px; cursor: pointer; margin-top: 8px; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="search-bar">
-            <input type="text" placeholder="搜索...">
-            <div class="action-buttons">
-                <button class="export-btn" onclick="exportData()">导出</button>
-                <button onclick="importData()">导入</button>
-            </div>
-        </div>
         <div class="header">
             <a href="wear_shoes.html" class="back-button">←</a>
+            <h1>运动鞋管理</h1>
         </div>
-
-        <!-- 添加物品按钮 -->
-        <button class="add-item-button" onclick="showAddForm()">+ 添加衣物</button>
-
-        <!-- 物品展示区域 -->
-        <div class="items-container">
-            <!-- 添加新物品的卡片 -->
-            <div class="item-card add-new-card" style="display: none;">
-                <div class="image-upload" onclick="document.getElementById('imageUpload').click()">
-                    <input type="file" accept="image/*" id="imageUpload" onchange="previewImage(event)">
-                    <div class="placeholder">
-                        <span class="emoji">📸</span>
-                        <p>点击添加图片</p>
-                    </div>
-                </div>
-                <input type="text" class="location-input" placeholder="输入位置...">
-                <button class="save-button" onclick="saveItem()">保存</button>
-            </div>
+        <div class="add-item-form">
+            <label class="image-upload-label" for="imageInput">
+                <span id="imagePlaceholder">📸</span>
+                <img id="previewImg" style="display:none;" />
+            </label>
+            <input type="file" accept="image/*" id="imageInput" />
+            <input type="text" id="locationInput" placeholder="输入位置..." style="width: 80%; padding: 6px; border-radius: 4px; border: 1px solid #ddd;" />
+            <button class="add-btn" id="addBtn">添加衣物</button>
         </div>
+        <div id="itemsContainer" class="items-container"></div>
     </div>
-
-    <!-- 导出数据弹窗 -->
-    <div class="modal" id="exportModal">
-        <div class="modal-content">
-            <h3>导出数据</h3>
-            <textarea id="exportData" readonly></textarea>
-            <div class="modal-buttons">
-                <button class="copy-btn" onclick="copyExportData()">复制</button>
-                <button class="close-btn" onclick="closeModal()">关闭</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // 存储所有物品数据
-        let items = JSON.parse(localStorage.getItem('shoes_sports') || '[]');
-        
-        // 初始化页面时加载已有数据
-        window.onload = function() {
-            items.forEach(item => addItemToDOM(item));
-        }
+        let db;
+        const request = indexedDB.open('ClothesDB', 4);
 
-        // 显示添加表单
-        function showAddForm() {
-            document.querySelector('.add-new-card').style.display = 'block';
-        }
+        request.onerror = function(event) {
+            console.error('IndexedDB 数据库打开失败:', event.target.error);
+        };
 
-        // 预览图片
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const placeholder = document.querySelector('.placeholder');
-                    placeholder.innerHTML = `<img src="${e.target.result}" class="image-preview">`;
-                }
-                reader.readAsDataURL(file);
+        request.onsuccess = function(event) {
+            console.log('IndexedDB: onsuccess 触发');
+            db = event.target.result;
+            console.log('IndexedDB: 数据库对象:', db);
+            renderItems();
+        };
+
+        request.onupgradeneeded = function(event) {
+            console.log('IndexedDB: onupgradeneeded 触发');
+            const db = event.target.result;
+            // Create summer object stores
+            if (!db.objectStoreNames.contains('dress_items')) { db.createObjectStore('dress_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('shorts_items')) { db.createObjectStore('shorts_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('camisole_items')) { db.createObjectStore('camisole_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('sunproof_items')) { db.createObjectStore('sunproof_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('skirt_items')) { db.createObjectStore('skirt_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('top_items')) { db.createObjectStore('top_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('swimwear_items')) { db.createObjectStore('swimwear_items', { keyPath: 'id', autoIncrement: true }); }
+            // Create spring/autumn object stores
+            if (!db.objectStoreNames.contains('vest_items')) { db.createObjectStore('vest_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('sweater_items')) { db.createObjectStore('sweater_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('suit_items')) { db.createObjectStore('suit_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('pants_items')) { db.createObjectStore('pants_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('leggings_items')) { db.createObjectStore('leggings_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('jacket_items')) { db.createObjectStore('jacket_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('shirt_items')) { db.createObjectStore('shirt_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('coat_items')) { db.createObjectStore('coat_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('base_items')) { db.createObjectStore('base_items', { keyPath: 'id', autoIncrement: true }); }
+            // Create winter object stores
+            if (!db.objectStoreNames.contains('down_items')) { db.createObjectStore('down_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('underwear_items')) { db.createObjectStore('underwear_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('winter_pants_items')) { db.createObjectStore('winter_pants_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('winter_coat_items')) { db.createObjectStore('winter_coat_items', { keyPath: 'id', autoIncrement: true }); }
+             // Create underwear object stores
+            if (!db.objectStoreNames.contains('bra_items')) { db.createObjectStore('bra_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('socks_items')) { db.createObjectStore('socks_items', { keyPath: 'id', autoIncrement: true }); }
+             // Create shoe object stores
+            if (!db.objectStoreNames.contains('sneakers_items')) { db.createObjectStore('sneakers_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('sports_items')) { db.createObjectStore('sports_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('casual_items')) { db.createObjectStore('casual_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('sandals_items')) { db.createObjectStore('sandals_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('boots_items')) { db.createObjectStore('boots_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('leather_items')) { db.createObjectStore('leather_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('slippers_items')) { db.createObjectStore('slippers_items', { keyPath: 'id', autoIncrement: true }); }
+            if (!db.objectStoreNames.contains('dance_items')) { db.createObjectStore('dance_items', { keyPath: 'id', autoIncrement: true }); }
+
+            if (db.objectStoreNames.contains('clothes')) {
+                console.log('IndexedDB: clothes 对象存储已存在 (保留或删除)');
             }
+        };
+
+        function addCloth(image, location) {
+            const tx = db.transaction('sports_items', 'readwrite'); // Use sports_items
+            const store = tx.objectStore('sports_items'); // Use sports_items
+            store.add({ image, location });
+            tx.oncomplete = renderItems;
         }
 
-        // 保存物品
-        function saveItem() {
-            const locationInput = document.querySelector('.location-input');
-            const imageData = document.querySelector('.image-preview')?.src;
-            
-            if (!imageData || !locationInput.value) {
-                alert('请添加图片和位置信息');
-                return;
-            }
-
-            const item = {
-                id: Date.now(),
-                location: locationInput.value,
-                image: imageData
-            };
-
-            items.push(item);
-            // 保存到localStorage
-            localStorage.setItem('shoes_sports', JSON.stringify(items));
-            addItemToDOM(item);
-
-            // 重置表单
-            document.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
-            locationInput.value = '';
-            document.querySelector('.add-new-card').style.display = 'none';
-        }
-
-        // 将物品添加到页面
-        function addItemToDOM(item) {
-            const newCard = document.createElement('div');
-            newCard.className = 'item-card';
-            newCard.dataset.id = item.id;
-            newCard.innerHTML = `
+        function renderItems() {
+            const tx = db.transaction('sports_items', 'readonly'); // Use sports_items
+            const store = tx.objectStore('sports_items'); // Use sports_items
+            const req = store.getAll();
+            req.onsuccess = function() {
+                const items = req.result;
+                const container = document.getElementById('itemsContainer');
+                container.innerHTML = '';
+                items.forEach((item) => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.dataset.id = item.id;
+                    card.innerHTML = `
                 <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
-                <div class="image-container">
-                    <img src="${item.image}" alt="物品图片" class="image-preview">
-                </div>
+                        <img src="${item.image}" class="image-preview" />
                 <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
             `;
-
-            document.querySelector('.items-container').insertBefore(
-                newCard,
-                document.querySelector('.add-new-card')
-            );
-        }
-
-        // 删除物品
-        function deleteItem(id) {
-            if (confirm('确定要删除这个物品吗？')) {
-                items = items.filter(item => item.id !== id);
-                // 更新localStorage
-                localStorage.setItem('shoes_sports', JSON.stringify(items));
-                document.querySelector(`[data-id="${id}"]`).remove();
+                    container.appendChild(card);
+                });
             }
         }
 
-        // 使文本可编辑
+        window.deleteItem = function(id) {
+            const tx = db.transaction('sports_items', 'readwrite'); // Use sports_items
+            const store = tx.objectStore('sports_items'); // Use sports_items
+            store.delete(id);
+            tx.oncomplete = renderItems;
+        }
+
+        // Add makeEditable function
         function makeEditable(element) {
             element.contentEditable = true;
             element.classList.add('editing');
@@ -145,13 +145,19 @@
             function saveEdit() {
                 element.contentEditable = false;
                 element.classList.remove('editing');
-                const itemId = parseInt(element.parentElement.dataset.id);
-                const item = items.find(item => item.id === itemId);
+                const itemId = parseInt(element.closest('.item-card').dataset.id);
+                const newLocation = element.textContent;
+
+                const tx = db.transaction('sports_items', 'readwrite'); // Use sports_items
+                const store = tx.objectStore('sports_items'); // Use sports_items
+                store.get(itemId).onsuccess = function(event) {
+                    const item = event.target.result;
                 if (item) {
-                    item.location = element.textContent;
-                    // 更新localStorage
-                    localStorage.setItem('shoes_sports', JSON.stringify(items));
-                }
+                        item.location = newLocation;
+                        store.put(item);
+                        tx.oncomplete = renderItems;
+                    }
+                };
             }
 
             function cancelEdit() {
@@ -171,71 +177,35 @@
             });
         }
 
-        // 导出数据
-        function exportData() {
-            const modal = document.getElementById('exportModal');
-            const textarea = document.getElementById('exportData');
-            const exportData = {
-                type: '运动鞋',
-                items: items
-            };
-            textarea.value = JSON.stringify(exportData, null, 2);
-            modal.style.display = 'flex';
+        document.getElementById('addBtn').onclick = function() {
+            const locInput = document.getElementById('locationInput');
+            const imageInput = document.getElementById('imageInput');
+            if (!imageInput.files[0] || !locInput.value) {
+                alert('请添加图片和位置信息');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                addCloth(ev.target.result, locInput.value);
+                // 重置表单
+                document.getElementById('previewImg').style.display = 'none';
+                document.getElementById('imagePlaceholder').style.display = 'block';
+                imageInput.value = '';
+                locInput.value = '';
+            }
+            reader.readAsDataURL(imageInput.files[0]);
         }
 
-        // 导入数据
-        function importData() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = function(e) {
-                const file = e.target.files[0];
+        document.getElementById('imageInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const importedData = JSON.parse(e.target.result);
-                        if (importedData.type === '运动鞋' && Array.isArray(importedData.items)) {
-                            items = importedData.items;
-                            // 保存到localStorage
-                            localStorage.setItem('shoes_sports', JSON.stringify(items));
-                            // 清空现有物品
-                            const container = document.querySelector('.items-container');
-                            while (container.firstChild) {
-                                if (container.firstChild.classList.contains('add-new-card')) break;
-                                container.removeChild(container.firstChild);
-                            }
-                            // 添加导入的物品
-                            items.forEach(item => addItemToDOM(item));
-                        } else {
-                            alert('无效的数据格式');
-                        }
-                    } catch (error) {
-                        alert('导入失败：' + error.message);
-                    }
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        }
-
-        // 复制导出数据
-        function copyExportData() {
-            const textarea = document.getElementById('exportData');
-            textarea.select();
-            document.execCommand('copy');
-            alert('已复制到剪贴板');
-        }
-
-        // 关闭弹窗
-        function closeModal() {
-            document.getElementById('exportModal').style.display = 'none';
-        }
-
-        // 点击弹窗外部关闭弹窗
-        window.onclick = function(event) {
-            const modal = document.getElementById('exportModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
+                reader.onload = function(ev) {
+                    document.getElementById('previewImg').src = ev.target.result;
+                    document.getElementById('previewImg').style.display = 'block';
+                    document.getElementById('imagePlaceholder').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
             }
         }
     </script>

@@ -37,67 +37,189 @@
         <div id="itemsContainer" class="items-container"></div>
     </div>
     <script>
-        let items = JSON.parse(localStorage.getItem('summer_skirt') || '[]');
-        let imageData = '';
-        const imageInput = document.getElementById('imageInput');
-        const previewImg = document.getElementById('previewImg');
-        const imagePlaceholder = document.getElementById('imagePlaceholder');
-        imageInput.onchange = function(e) {
+        let db;
+        const request = indexedDB.open('ClothesDB', 4); // 确保使用正确的数据库名称和版本
+
+        request.onerror = function(event) { // 确保错误处理函数签名正确
+            console.error('IndexedDB 数据库打开失败:', event.target.error); // 输出详细错误到控制台
+        };
+
+        request.onsuccess = function(event) {
+            console.log('IndexedDB: onsuccess 触发');
+            db = event.target.result;
+            console.log('IndexedDB: 数据库对象:', db);
+            renderItems(); // 在数据库打开成功后渲染项目
+        };
+
+        request.onupgradeneeded = function(event) {
+            console.log('IndexedDB: onupgradeneeded 触发');
+            const db = event.target.result;
+            // 创建所有夏季衣物分类的对象存储
+            if (!db.objectStoreNames.contains('dress_items')) {
+                console.log('IndexedDB: 创建 dress_items 对象存储');
+                db.createObjectStore('dress_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('shorts_items')) {
+                console.log('IndexedDB: 创建 shorts_items 对象存储');
+                db.createObjectStore('shorts_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('camisole_items')) {
+                console.log('IndexedDB: 创建 camisole_items 对象存储');
+                db.createObjectStore('camisole_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('sunproof_items')) {
+                console.log('IndexedDB: 创建 sunproof_items 对象存储');
+                db.createObjectStore('sunproof_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('skirt_items')) {
+                console.log('IndexedDB: 创建 skirt_items 对象存储');
+                db.createObjectStore('skirt_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('top_items')) {
+                console.log('IndexedDB: 创建 top_items 对象存储');
+                db.createObjectStore('top_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('swimwear_items')) {
+                console.log('IndexedDB: 创建 swimwear_items 对象存储');
+                db.createObjectStore('swimwear_items', { keyPath: 'id', autoIncrement: true });
+            }
+             // 可以选择保留旧的 clothes 对象存储，或者在此处删除 if 必要
+            if (db.objectStoreNames.contains('clothes')) {
+                 console.log('IndexedDB: clothes 对象存储已存在 (保留或删除)');
+                 // db.deleteObjectStore('clothes'); // 如果不需要保留旧数据可以删除
+            }
+        };
+
+        function addCloth(image, location) {
+            // 使用 skirt_items 对象存储
+            // 移除非必要的 db 可用性检查，依赖 onsuccess 触发后 db 才可用
+            // if (!db || !db.objectStoreNames.contains('skirt_items')) {
+            //     console.error('数据库未准备好或 skirt_items 对象存储不存在');
+            //     return;
+            // }
+            const tx = db.transaction('skirt_items', 'readwrite');
+            const store = tx.objectStore('skirt_items');
+            store.add({ image, location });
+            tx.oncomplete = renderItems;
+        }
+
+        function renderItems() {
+            // 使用 skirt_items 对象存储
+             // 移除非必要的 db 可用性检查，依赖 onsuccess 触发后 db 才可用
+            // if (!db || !db.objectStoreNames.contains('skirt_items')) {
+            //      console.error('数据库未准备好或 skirt_items 对象存储不存在，无法渲染项目');
+            //      return;
+            // }
+            const tx = db.transaction('skirt_items', 'readonly');
+            const store = tx.objectStore('skirt_items');
+            const req = store.getAll();
+            req.onsuccess = function() {
+                const items = req.result;
+                const container = document.getElementById('itemsContainer');
+                container.innerHTML = '';
+                items.forEach((item) => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.dataset.id = item.id;
+                    card.innerHTML = `
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
+                        <img src="${item.image}" class="image-preview" />
+                        <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        window.deleteItem = function(id) {
+            // 使用 skirt_items 对象存储
+             // 移除非必要的 db 可用性检查，依赖 onsuccess 触发后 db 才可用
+            // if (!db || !db.objectStoreNames.contains('skirt_items')) {
+            //     console.error('数据库未准备好或 skirt_items 对象存储不存在，无法删除项目');
+            //     return;
+            // }
+            const tx = db.transaction('skirt_items', 'readwrite');
+            const store = tx.objectStore('skirt_items');
+            store.delete(id);
+            tx.oncomplete = renderItems;
+        }
+
+        function makeEditable(element) {
+            element.contentEditable = true;
+            element.classList.add('editing');
+            element.focus();
+
+            const originalText = element.textContent;
+
+            function saveEdit() {
+                element.contentEditable = false;
+                element.classList.remove('editing');
+                const itemId = parseInt(element.parentElement.dataset.id);
+                 // 使用 skirt_items 对象存储
+                 // 移除非必要的 db 可用性检查，依赖 onsuccess 触发后 db 才可用
+                 // if (!db || !db.objectStoreNames.contains('skirt_items')) {
+                 //     console.error('数据库未准备好或 skirt_items 对象存储不存在，无法保存编辑');
+                 //     return;
+                 // }
+                const tx = db.transaction('skirt_items', 'readwrite');
+                const store = tx.objectStore('skirt_items');
+                store.get(itemId).onsuccess = function(event) {
+                    const item = event.target.result;
+                    if (item) {
+                        item.location = element.textContent;
+                        store.put(item);
+                    }
+                };
+            }
+
+            function cancelEdit() {
+                element.textContent = originalText;
+                element.contentEditable = false;
+                element.classList.remove('editing');
+            }
+
+            element.addEventListener('blur', saveEdit);
+            element.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                } else if (e.key === 'Escape') {
+                    cancelEdit();
+                }
+            });
+        }
+
+        document.getElementById('addBtn').onclick = function() {
+            const locInput = document.getElementById('locationInput');
+            const imageInput = document.getElementById('imageInput');
+            if (!imageInput.files[0] || !locInput.value) {
+                alert('请添加图片和位置信息');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                addCloth(ev.target.result, locInput.value);
+                // 重置表单
+                document.getElementById('previewImg').style.display = 'none';
+                document.getElementById('imagePlaceholder').style.display = 'block';
+                imageInput.value = '';
+                locInput.value = '';
+            }
+            reader.readAsDataURL(imageInput.files[0]);
+        }
+
+        document.getElementById('imageInput').onchange = function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(ev) {
-                    imageData = ev.target.result;
-                    previewImg.src = imageData;
-                    previewImg.style.display = 'block';
-                    imagePlaceholder.style.display = 'none';
+                    document.getElementById('previewImg').src = ev.target.result;
+                    document.getElementById('previewImg').style.display = 'block';
+                    document.getElementById('imagePlaceholder').style.display = 'none';
                 }
                 reader.readAsDataURL(file);
             }
         }
-        function renderItems() {
-            const container = document.getElementById('itemsContainer');
-            container.innerHTML = '';
-            items.forEach((item, idx) => {
-                const card = document.createElement('div');
-                card.className = 'item-card';
-                card.innerHTML = `
-                    <button class="delete-btn" onclick="deleteItem(${idx})">×</button>
-                    <img src="${item.image}" class="image-preview" />
-                    <div class="location-text" contenteditable="true" onblur="updateLocation(${idx}, this.textContent)">${item.location}</div>
-                `;
-                container.appendChild(card);
-            });
-        }
-        window.updateLocation = function(idx, newLoc) {
-            items[idx].location = newLoc;
-            localStorage.setItem('summer_skirt', JSON.stringify(items));
-        }
-        window.deleteItem = function(idx) {
-            if (confirm('确定要删除这个物品吗？')) {
-                items.splice(idx, 1);
-                localStorage.setItem('summer_skirt', JSON.stringify(items));
-                renderItems();
-            }
-        }
-        document.getElementById('addBtn').onclick = function() {
-            const locInput = document.getElementById('locationInput');
-            if (!imageData || !locInput.value) {
-                alert('请添加图片和位置信息');
-                return;
-            }
-            items.push({ image: imageData, location: locInput.value });
-            localStorage.setItem('summer_skirt', JSON.stringify(items));
-            renderItems();
-            // 重置表单
-            imageData = '';
-            previewImg.src = '';
-            previewImg.style.display = 'none';
-            imagePlaceholder.style.display = 'block';
-            imageInput.value = '';
-            locInput.value = '';
-        }
-        renderItems();
     </script>
 </body>
 </html>

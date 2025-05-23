@@ -159,20 +159,137 @@ const categories = {
 // 存储当前页面的物品数据
 let items = [];
 
-// 从本地存储加载数据
-function loadItems() {
-    const pathname = window.location.pathname;
-    const storedItems = localStorage.getItem(pathname);
-    if (storedItems) {
-        items = JSON.parse(storedItems);
-        displayItems();
+// 添加防抖函数
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// 优化图片处理
+async function optimizeImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// 优化数据存储
+function saveItems() {
+    try {
+        const pathname = window.location.pathname;
+        const data = JSON.stringify(items);
+        if (data.length > 5 * 1024 * 1024) { // 5MB 限制
+            throw new Error('数据量过大，请考虑清理一些数据');
+        }
+        localStorage.setItem(pathname, data);
+    } catch (error) {
+        console.error('保存数据失败:', error);
+        alert('保存数据失败: ' + error.message);
     }
 }
 
-// 保存数据到本地存储
-function saveItems() {
-    const pathname = window.location.pathname;
-    localStorage.setItem(pathname, JSON.stringify(items));
+// 优化加载数据
+function loadItems() {
+    try {
+        const pathname = window.location.pathname;
+        const storedItems = localStorage.getItem(pathname);
+        if (storedItems) {
+            items = JSON.parse(storedItems);
+            displayItems();
+        }
+    } catch (error) {
+        console.error('加载数据失败:', error);
+        alert('加载数据失败: ' + error.message);
+    }
+}
+
+// 优化图片上传处理
+async function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB 限制
+        alert('图片大小不能超过5MB');
+        return;
+    }
+
+    try {
+        const optimizedImage = await optimizeImage(file);
+        const itemCard = input.closest('.item-card');
+        const imgElement = itemCard.querySelector('.item-image');
+        imgElement.src = optimizedImage;
+        saveAllItems();
+    } catch (error) {
+        console.error('图片处理失败:', error);
+        alert('图片处理失败: ' + error.message);
+    }
+}
+
+// 优化搜索功能
+function setupEventListeners() {
+    // 搜索功能
+    const searchInput = document.querySelector('.search-bar input');
+    const debouncedSearch = debounce(function(e) {
+        const searchText = e.target.value.toLowerCase();
+        const itemCards = document.querySelectorAll('.item-card');
+        itemCards.forEach(card => {
+            const location = card.querySelector('.location-input').value.toLowerCase();
+            card.style.display = location.includes(searchText) ? '' : 'none';
+        });
+    }, 300);
+
+    searchInput.addEventListener('input', debouncedSearch);
+
+    // 导入按钮
+    document.querySelector('.action-buttons button:nth-child(1)').addEventListener('click', importData);
+
+    // 导出按钮
+    document.querySelector('.action-buttons button:nth-child(2)').addEventListener('click', exportData);
+
+    // 监听位置输入变化
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('location-input')) {
+            saveAllItems();
+        }
+    });
 }
 
 // 显示物品列表页面
@@ -213,36 +330,6 @@ function showItemPage(itemName, parentId) {
     setupEventListeners();
 }
 
-// 设置事件监听器
-function setupEventListeners() {
-    // 搜索功能
-    document.querySelector('.search-bar input').addEventListener('input', function(e) {
-        const searchText = e.target.value.toLowerCase();
-        const itemCards = document.querySelectorAll('.item-card');
-        itemCards.forEach(card => {
-            const location = card.querySelector('.location-input').value.toLowerCase();
-            if (location.includes(searchText)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    });
-
-    // 导入按钮
-    document.querySelector('.action-buttons button:nth-child(1)').addEventListener('click', importData);
-
-    // 导出按钮
-    document.querySelector('.action-buttons button:nth-child(2)').addEventListener('click', exportData);
-
-    // 监听位置输入变化
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('location-input')) {
-            saveAllItems();
-        }
-    });
-}
-
 // 添加新物品
 function addNewItem() {
     const container = document.querySelector('.items-container');
@@ -256,27 +343,6 @@ function addNewItem() {
         <input type="text" class="location-input" placeholder="位置...">
     `;
     container.appendChild(itemCard);
-}
-
-// 处理图片上传
-function handleImageUpload(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const imageContainer = input.parentElement;
-            imageContainer.style.backgroundImage = `url(${e.target.result})`;
-            imageContainer.style.backgroundSize = 'cover';
-            imageContainer.style.backgroundPosition = 'center';
-            const placeholder = imageContainer.querySelector('.placeholder');
-            if (placeholder) {
-                placeholder.style.display = 'none';
-            }
-            
-            // 保存当前状态
-            saveAllItems();
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
 }
 
 // 保存所有物品

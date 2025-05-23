@@ -52,20 +52,76 @@
     </div>
 
     <script>
-        // 存储所有物品数据
-        let items = JSON.parse(localStorage.getItem('jewelry_necklace') || '[]');
-        
-        // 初始化页面时加载已有数据
-        window.onload = function() {
-            items.forEach(item => addItemToDOM(item));
+        let db;
+        const request = indexedDB.open('ClothesDB', 1);
+
+        request.onupgradeneeded = function(event) {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains('clothes')) {
+                db.createObjectStore('clothes', { keyPath: 'id', autoIncrement: true });
+            }
+        };
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            renderItems();
+        };
+        request.onerror = function() {
+            alert('数据库打开失败');
+        };
+
+        function addCloth(image, location) {
+            const tx = db.transaction('clothes', 'readwrite');
+            const store = tx.objectStore('clothes');
+            store.add({ image, location });
+            tx.oncomplete = renderItems;
         }
 
-        // 显示添加表单
+        function renderItems() {
+            const tx = db.transaction('clothes', 'readonly');
+            const store = tx.objectStore('clothes');
+            const req = store.getAll();
+            req.onsuccess = function() {
+                const items = req.result;
+                const container = document.getElementById('itemsContainer');
+                // Clear existing items except the add new card
+                const existingItems = container.querySelectorAll('.item-card:not(.add-new-card)');
+                existingItems.forEach(item => item.remove());
+
+                items.forEach((item) => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.dataset.id = item.id;
+                    card.innerHTML = `
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
+                        <div class="image-container">
+                            <img src="${item.image}" alt="物品图片" class="image-preview">
+                        </div>
+                        <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
+                    `;
+                     container.insertBefore(
+                        card,
+                        document.querySelector('.add-new-card')
+                    );
+                });
+            }
+        }
+
+        window.deleteItem = function(id) {
+            const tx = db.transaction('clothes', 'readwrite');
+            const store = tx.objectStore('clothes');
+            store.delete(id);
+            tx.oncomplete = function() {
+                 document.querySelector(`[data-id="${id}"]`).remove();
+            };
+            tx.onerror = function() {
+                alert('删除失败');
+            }
+        }
+
         function showAddForm() {
             document.querySelector('.add-new-card').style.display = 'block';
         }
 
-        // 预览图片
         function previewImage(event) {
             const file = event.target.files[0];
             if (file) {
@@ -78,80 +134,51 @@
             }
         }
 
-        // 保存物品
         function saveItem() {
             const locationInput = document.querySelector('.location-input');
-            const imageData = document.querySelector('.image-preview')?.src;
-            
+            const imagePreview = document.querySelector('.add-new-card .image-preview');
+            const imageData = imagePreview ? imagePreview.src : null;
+
             if (!imageData || !locationInput.value) {
                 alert('请添加图片和位置信息');
                 return;
             }
 
-            const item = {
-                id: Date.now(),
-                location: locationInput.value,
-                image: imageData
-            };
-
-            items.push(item);
-            // 保存到localStorage
-            localStorage.setItem('jewelry_necklace', JSON.stringify(items));
-            addItemToDOM(item);
+            addCloth(imageData, locationInput.value);
 
             // 重置表单
             document.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
             locationInput.value = '';
             document.querySelector('.add-new-card').style.display = 'none';
+             if (imagePreview) imagePreview.remove();
         }
 
-        // 将物品添加到页面
-        function addItemToDOM(item) {
-            const newCard = document.createElement('div');
-            newCard.className = 'item-card';
-            newCard.dataset.id = item.id;
-            newCard.innerHTML = `
-                <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
-                <div class="image-container">
-                    <img src="${item.image}" alt="物品图片" class="image-preview">
-                </div>
-                <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
-            `;
-
-            document.querySelector('.items-container').insertBefore(
-                newCard,
-                document.querySelector('.add-new-card')
-            );
-        }
-
-        // 删除物品
-        function deleteItem(id) {
-            if (confirm('确定要删除这个物品吗？')) {
-                items = items.filter(item => item.id !== id);
-                // 更新localStorage
-                localStorage.setItem('jewelry_necklace', JSON.stringify(items));
-                document.querySelector(`[data-id="${id}"]`).remove();
-            }
-        }
-
-        // 使文本可编辑
         function makeEditable(element) {
             element.contentEditable = true;
             element.classList.add('editing');
             element.focus();
 
             const originalText = element.textContent;
-            
+
             function saveEdit() {
                 element.contentEditable = false;
                 element.classList.remove('editing');
                 const itemId = parseInt(element.parentElement.dataset.id);
-                const item = items.find(item => item.id === itemId);
-                if (item) {
-                    item.location = element.textContent;
-                    // 更新localStorage
-                    localStorage.setItem('jewelry_necklace', JSON.stringify(items));
-                }
+                const tx = db.transaction('clothes', 'readwrite');
+                const store = tx.objectStore('clothes');
+                store.get(itemId).onsuccess = function(event) {
+                    const item = event.target.result;
+                    if (item) {
+                        item.location = element.textContent;
+                        store.put(item);
+                        tx.oncomplete = function() {
+                            console.log('Location updated in IndexedDB');
+                        };
+                         tx.onerror = function() {
+                            console.error('Failed to update location in IndexedDB');
+                        };
+                    }
+                };
             }
 
             function cancelEdit() {
@@ -171,19 +198,27 @@
             });
         }
 
-        // 导出数据
         function exportData() {
-            const modal = document.getElementById('exportModal');
-            const textarea = document.getElementById('exportData');
-            const exportData = {
-                type: '项链',
-                items: items
-            };
-            textarea.value = JSON.stringify(exportData, null, 2);
-            modal.style.display = 'flex';
+            const tx = db.transaction('clothes', 'readonly');
+            const store = tx.objectStore('clothes');
+            const req = store.getAll();
+            req.onsuccess = function() {
+                const items = req.result;
+                 const exportData = {
+                    type: document.querySelector('h1').textContent.replace('管理',''),
+                    items: items
+                };
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${exportData.type}_物品列表.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
         }
 
-        // 导入数据
         function importData() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -194,18 +229,22 @@
                 reader.onload = function(e) {
                     try {
                         const importedData = JSON.parse(e.target.result);
-                        if (importedData.type === '项链' && Array.isArray(importedData.items)) {
-                            items = importedData.items;
-                            // 保存到localStorage
-                            localStorage.setItem('jewelry_necklace', JSON.stringify(items));
-                            // 清空现有物品
-                            const container = document.querySelector('.items-container');
-                            while (container.firstChild) {
-                                if (container.firstChild.classList.contains('add-new-card')) break;
-                                container.removeChild(container.firstChild);
-                            }
-                            // 添加导入的物品
-                            items.forEach(item => addItemToDOM(item));
+                        // Assuming importedData.items is an array of items
+                        if (Array.isArray(importedData.items)) {
+                            const tx = db.transaction('clothes', 'readwrite');
+                            const store = tx.objectStore('clothes');
+                            store.clear(); // Clear existing data
+                            importedData.items.forEach(item => {
+                                // Add imported items, let IndexedDB generate new IDs
+                                store.add({ image: item.image, location: item.location });
+                            });
+                            tx.oncomplete = function() {
+                                alert('导入成功！');
+                                renderItems();
+                            };
+                             tx.onerror = function() {
+                                alert('导入失败');
+                            };
                         } else {
                             alert('无效的数据格式');
                         }
@@ -218,26 +257,17 @@
             input.click();
         }
 
-        // 复制导出数据
-        function copyExportData() {
-            const textarea = document.getElementById('exportData');
-            textarea.select();
-            document.execCommand('copy');
-            alert('已复制到剪贴板');
-        }
-
-        // 关闭弹窗
         function closeModal() {
             document.getElementById('exportModal').style.display = 'none';
         }
 
-        // 点击弹窗外部关闭弹窗
         window.onclick = function(event) {
             const modal = document.getElementById('exportModal');
             if (event.target === modal) {
                 modal.style.display = 'none';
             }
         }
+
     </script>
 </body>
 </html> 

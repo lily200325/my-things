@@ -5,148 +5,164 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>打底裤</title>
     <link rel="stylesheet" href="../../styles.css">
+    <style>
+        body { background: #fafbfc; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 8px #eee; padding: 32px; }
+        h1 { text-align: center; margin-bottom: 24px; }
+        .add-item-form { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .add-item-form input[type="file"] { display: none; }
+        .image-upload-label { border: 2px dashed #bbb; border-radius: 8px; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #f5f5f5; }
+        .image-upload-label img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+        .items-container { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+        .item-card { background: #f7f7f7; border-radius: 10px; box-shadow: 0 1px 4px #eee; padding: 16px; width: 160px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .item-card img { max-width: 100px; max-height: 100px; border-radius: 8px; margin-bottom: 8px; }
+        .item-card .delete-btn { position: absolute; top: 8px; right: 8px; background: #fff; border: none; color: #e55; font-size: 18px; cursor: pointer; border-radius: 50%; width: 24px; height: 24px; line-height: 20px; }
+        .item-card .location-text { width: 100%; text-align: center; background: none; border: none; font-size: 15px; margin-top: 4px; }
+        .item-card .location-text.editing { background: #fffbe6; border-radius: 4px; }
+        .add-btn { background: #222; color: #fff; border: none; border-radius: 6px; padding: 8px 24px; font-size: 16px; cursor: pointer; margin-top: 8px; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="search-bar">
-            <input type="text" placeholder="搜索...">
-            <div class="action-buttons">
-                <button class="export-btn" onclick="exportData()">导出</button>
-                <button onclick="importData()">导入</button>
-            </div>
+        <h1>打底裤管理</h1>
+        <div class="add-item-form">
+            <label class="image-upload-label" for="imageInput">
+                <span id="imagePlaceholder">📸</span>
+                <img id="previewImg" style="display:none;" />
+            </label>
+            <input type="file" accept="image/*" id="imageInput" />
+            <input type="text" id="locationInput" placeholder="输入位置..." style="width: 80%; padding: 6px; border-radius: 4px; border: 1px solid #ddd;" />
+            <button class="add-btn" id="addBtn">添加衣物</button>
         </div>
-        <div class="header">
-            <a href="wear_spring_autumn.html" class="back-button">←</a>
-            <h1>打底裤</h1>
-        </div>
-
-        <!-- 添加物品按钮 -->
-        <button class="add-item-button" onclick="showAddForm()">+ 添加衣物</button>
-
-        <!-- 物品展示区域 -->
-        <div class="items-container">
-            <!-- 添加新物品的卡片 -->
-            <div class="item-card add-new-card" style="display: none;">
-                <div class="image-upload" onclick="document.getElementById('imageUpload').click()">
-                    <input type="file" accept="image/*" id="imageUpload" onchange="previewImage(event)">
-                    <div class="placeholder">
-                        <span class="emoji">📸</span>
-                        <p>点击添加图片</p>
-                    </div>
-                </div>
-                <input type="text" class="location-input" placeholder="输入位置...">
-                <select class="type-select">
-                    <option value="薄">薄</option>
-                    <option value="厚">厚</option>
-                    <option value="其他">其他</option>
-                </select>
-                <button class="save-button" onclick="saveItem()">保存</button>
-            </div>
-        </div>
+        <div id="itemsContainer" class="items-container"></div>
     </div>
-
-    <!-- 导出数据弹窗 -->
-    <div class="modal" id="exportModal">
-        <div class="modal-content">
-            <h3>导出数据</h3>
-            <textarea id="exportData" readonly></textarea>
-            <div class="modal-buttons">
-                <button class="copy-btn" onclick="copyExportData()">复制</button>
-                <button class="close-btn" onclick="closeModal()">关闭</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // 存储所有物品数据
-        let items = JSON.parse(localStorage.getItem('spring_autumn_leggings') || '[]');
-        
-        // 初始化页面时加载已有数据
-        window.onload = function() {
-            items.forEach(item => addItemToDOM(item));
-        }
+        let db;
+        const request = indexedDB.open('ClothesDB', 4);
 
-        // 显示添加表单
-        function showAddForm() {
-            document.querySelector('.add-new-card').style.display = 'block';
-        }
+        request.onerror = function(event) {
+            console.error('IndexedDB 数据库打开失败:', event.target.error);
+        };
 
-        // 预览图片
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const placeholder = document.querySelector('.placeholder');
-                    placeholder.innerHTML = `<img src="${e.target.result}" class="image-preview">`;
-                }
-                reader.readAsDataURL(file);
+        request.onsuccess = function(event) {
+            console.log('IndexedDB: onsuccess 触发');
+            db = event.target.result;
+            console.log('IndexedDB: 数据库对象:', db);
+            renderItems();
+        };
+
+        request.onupgradeneeded = function(event) {
+            console.log('IndexedDB: onupgradeneeded 触发');
+            const db = event.target.result;
+            // Create summer object stores (from camisole.html)
+            if (!db.objectStoreNames.contains('dress_items')) {
+                console.log('IndexedDB: 创建 dress_items 对象存储');
+                db.createObjectStore('dress_items', { keyPath: 'id', autoIncrement: true });
             }
-        }
-
-        // 保存物品
-        function saveItem() {
-            const locationInput = document.querySelector('.location-input');
-            const typeSelect = document.querySelector('.type-select');
-            const imageData = document.querySelector('.image-preview')?.src;
-            
-            if (!imageData || !locationInput.value) {
-                alert('请添加图片和位置信息');
-                return;
+            if (!db.objectStoreNames.contains('shorts_items')) {
+                console.log('IndexedDB: 创建 shorts_items 对象存储');
+                db.createObjectStore('shorts_items', { keyPath: 'id', autoIncrement: true });
             }
+            if (!db.objectStoreNames.contains('camisole_items')) {
+                console.log('IndexedDB: 创建 camisole_items 对象存储');
+                db.createObjectStore('camisole_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('sunproof_items')) {
+                console.log('IndexedDB: 创建 sunproof_items 对象存储');
+                db.createObjectStore('sunproof_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('skirt_items')) {
+                console.log('IndexedDB: 创建 skirt_items 对象存储');
+                db.createObjectStore('skirt_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('top_items')) {
+                console.log('IndexedDB: 创建 top_items 对象存储');
+                db.createObjectStore('top_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('swimwear_items')) {
+                console.log('IndexedDB: 创建 swimwear_items 对象存储');
+                db.createObjectStore('swimwear_items', { keyPath: 'id', autoIncrement: true });
+            }
+            // Create spring/autumn object stores (from vest.html and others)
+            if (!db.objectStoreNames.contains('vest_items')) {
+                console.log('IndexedDB: 创建 vest_items 对象存储');
+                db.createObjectStore('vest_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('sweater_items')) {
+                console.log('IndexedDB: 创建 sweater_items 对象存储');
+                db.createObjectStore('sweater_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('suit_items')) {
+                console.log('IndexedDB: 创建 suit_items 对象存储');
+                db.createObjectStore('suit_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('pants_items')) {
+                console.log('IndexedDB: 创建 pants_items 对象存储');
+                db.createObjectStore('pants_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('leggings_items')) {
+                console.log('IndexedDB: 创建 leggings_items 对象存储');
+                db.createObjectStore('leggings_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('jacket_items')) {
+                console.log('IndexedDB: 创建 jacket_items 对象存储');
+                db.createObjectStore('jacket_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('shirt_items')) {
+                console.log('IndexedDB: 创建 shirt_items 对象存储');
+                db.createObjectStore('shirt_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('coat_items')) {
+                console.log('IndexedDB: 创建 coat_items 对象存储');
+                db.createObjectStore('coat_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('base_items')) {
+                console.log('IndexedDB: 创建 base_items 对象存储');
+                db.createObjectStore('base_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (db.objectStoreNames.contains('clothes')) {
+                console.log('IndexedDB: clothes 对象存储已存在 (保留或删除)');
+                // db.deleteObjectStore('clothes');
+            }
+        };
 
-            const item = {
-                id: Date.now(),
-                location: locationInput.value,
-                type: typeSelect.value,
-                image: imageData
-            };
-
-            items.push(item);
-            // 保存到localStorage
-            localStorage.setItem('spring_autumn_leggings', JSON.stringify(items));
-            addItemToDOM(item);
-
-            // 重置表单
-            document.querySelector('.placeholder').innerHTML = '<span class="emoji">📸</span><p>点击添加图片</p>';
-            locationInput.value = '';
-            document.querySelector('.add-new-card').style.display = 'none';
+        function addCloth(image, location) {
+            const tx = db.transaction('leggings_items', 'readwrite'); // Use leggings_items
+            const store = tx.objectStore('leggings_items'); // Use leggings_items
+            store.add({ image, location });
+            tx.oncomplete = renderItems;
         }
 
-        // 将物品添加到页面
-        function addItemToDOM(item) {
-            const newCard = document.createElement('div');
-            newCard.className = 'item-card';
-            newCard.dataset.id = item.id;
-            newCard.dataset.type = item.type || '其他';
-            newCard.innerHTML = `
+        function renderItems() {
+            const tx = db.transaction('leggings_items', 'readonly'); // Use leggings_items
+            const store = tx.objectStore('leggings_items'); // Use leggings_items
+            const req = store.getAll();
+            req.onsuccess = function() {
+                const items = req.result;
+                const container = document.getElementById('itemsContainer'); // Keep original container ID
+                container.innerHTML = '';
+                items.forEach((item) => { // Removed idx as it's not used
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.dataset.id = item.id; // Add dataset.id for delete/edit
+                    card.innerHTML = `
                 <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
-                <div class="image-container">
-                    <img src="${item.image}" alt="物品图片" class="image-preview">
-                </div>
-                <div class="item-details">
-                    <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
-                    <div class="type-badge">${item.type || '其他'}</div>
-                </div>
-            `;
-
-            document.querySelector('.items-container').insertBefore(
-                newCard,
-                document.querySelector('.add-new-card')
-            );
-        }
-
-        // 删除物品
-        function deleteItem(id) {
-            if (confirm('确定要删除这个物品吗？')) {
-                items = items.filter(item => item.id !== id);
-                // 更新localStorage
-                localStorage.setItem('spring_autumn_leggings', JSON.stringify(items));
-                document.querySelector(`[data-id="${id}"]`).remove();
+                        <img src="${item.image}" class="image-preview" />
+                        <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div> <!-- Added editable class and ondblclick -->
+                    `;
+                    container.appendChild(card);
+                });
             }
         }
 
-        // 使文本可编辑
+        window.deleteItem = function(id) {
+            const tx = db.transaction('leggings_items', 'readwrite'); // Use leggings_items
+            const store = tx.objectStore('leggings_items'); // Use leggings_items
+            store.delete(id);
+            tx.oncomplete = renderItems;
+        }
+
+        // Add makeEditable function
         function makeEditable(element) {
             element.contentEditable = true;
             element.classList.add('editing');
@@ -158,12 +174,18 @@
                 element.contentEditable = false;
                 element.classList.remove('editing');
                 const itemId = parseInt(element.closest('.item-card').dataset.id);
-                const item = items.find(item => item.id === itemId);
+                const newLocation = element.textContent;
+
+                const tx = db.transaction('leggings_items', 'readwrite'); // Use leggings_items
+                const store = tx.objectStore('leggings_items'); // Use leggings_items
+                store.get(itemId).onsuccess = function(event) {
+                    const item = event.target.result;
                 if (item) {
-                    item.location = element.textContent;
-                    // 更新localStorage
-                    localStorage.setItem('spring_autumn_leggings', JSON.stringify(items));
-                }
+                        item.location = newLocation;
+                        store.put(item);
+                        tx.oncomplete = renderItems;
+                    }
+                };
             }
 
             function cancelEdit() {
@@ -183,46 +205,99 @@
             });
         }
 
-        // 导出数据
-        function exportData() {
-            const modal = document.getElementById('exportModal');
-            const textarea = document.getElementById('exportData');
-            const exportData = {
-                type: '打底裤',
-                items: items
-            };
-            textarea.value = JSON.stringify(exportData, null, 2);
-            modal.style.display = 'flex';
+
+        document.getElementById('addBtn').onclick = function() {
+            const locInput = document.getElementById('locationInput');
+            const imageInput = document.getElementById('imageInput');
+            if (!imageInput.files[0] || !locInput.value) {
+                alert('请添加图片和位置信息');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                addCloth(ev.target.result, locInput.value);
+                // 重置表单
+                document.getElementById('previewImg').style.display = 'none';
+                document.getElementById('imagePlaceholder').style.display = 'block';
+                imageInput.value = '';
+                locInput.value = '';
+            }
+            reader.readAsDataURL(imageInput.files[0]);
         }
 
-        // 导入数据
+        document.getElementById('imageInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    document.getElementById('previewImg').src = ev.target.result;
+                    document.getElementById('previewImg').style.display = 'block';
+                    document.getElementById('imagePlaceholder').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Add Export/Import Data functions based on camisole.html structure
+        function exportData() {
+             const tx = db.transaction('leggings_items', 'readonly'); // Use leggings_items
+             const store = tx.objectStore('leggings_items'); // Use leggings_items
+             const req = store.getAll();
+             req.onsuccess = function() {
+                 const items = req.result;
+                 const exportObj = { // Changed variable name to avoid conflict
+                     type: '打底裤', // Set type to '打底裤'
+                items: items
+            };
+                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+                 const downloadAnchorNode = document.createElement('a');
+                 downloadAnchorNode.setAttribute("href",     dataStr);
+                 downloadAnchorNode.setAttribute("download", "leggings_items.json"); // Set filename
+                 document.body.appendChild(downloadAnchorNode); // required for firefox
+                 downloadAnchorNode.click();
+                 downloadAnchorNode.remove();
+             }
+        }
+
         function importData() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.json';
             input.onchange = function(e) {
                 const file = e.target.files[0];
+                if (!file) {
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
                         const importedData = JSON.parse(e.target.result);
-                        if (importedData.type === '打底裤' && Array.isArray(importedData.items)) {
-                            items = importedData.items;
-                            // 保存到localStorage
-                            localStorage.setItem('spring_autumn_leggings', JSON.stringify(items));
-                            // 清空现有物品
-                            const container = document.querySelector('.items-container');
-                            while (container.firstChild) {
-                                if (container.firstChild.classList.contains('add-new-card')) break;
-                                container.removeChild(container.firstChild);
-                            }
-                            // 添加导入的物品
-                            items.forEach(item => addItemToDOM(item));
+                         // Check for correct type and if it's an array
+                        if (importedData.type === '打底裤' && Array.isArray(importedData.items)) { // Check for '打底裤'
+                             const tx = db.transaction('leggings_items', 'readwrite'); // Use leggings_items
+                             const store = tx.objectStore('leggings_items'); // Use leggings_items
+                             // Clear existing data before importing
+                             store.clear().onsuccess = function() { // Clear existing data first
+                                 importedData.items.forEach(item => {
+                                     // Remove old id before adding to let IndexedDB assign a new one
+                                     delete item.id;
+                                     store.add(item);
+                                 });
+                                 tx.oncomplete = function() { // Render after all adds are complete
+                                     renderItems();
+                                     alert('数据导入成功！');
+                                 };
+                                  tx.onerror = function(event) {
+                                     console.error('导入数据时发生错误:', event.target.error);
+                                     alert('数据导入失败！');
+                                 };
+                             };
                         } else {
-                            alert('无效的数据格式');
+                            alert('无效的数据格式或类型不匹配');
                         }
                     } catch (error) {
                         alert('导入失败：' + error.message);
+                        console.error('导入错误:', error);
                     }
                 };
                 reader.readAsText(file);
@@ -230,55 +305,6 @@
             input.click();
         }
 
-        // 复制导出数据
-        function copyExportData() {
-            const textarea = document.getElementById('exportData');
-            textarea.select();
-            document.execCommand('copy');
-            alert('已复制到剪贴板');
-        }
-
-        // 关闭弹窗
-        function closeModal() {
-            document.getElementById('exportModal').style.display = 'none';
-        }
-
-        // 点击弹窗外部关闭弹窗
-        window.onclick = function(event) {
-            const modal = document.getElementById('exportModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        }
     </script>
-    <style>
-        .subtitle {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .type-select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        
-        .type-badge {
-            display: inline-block;
-            background-color: #f0f0f0;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            margin-top: 5px;
-        }
-        
-        .item-details {
-            width: 100%;
-            text-align: center;
-        }
-    </style>
 </body>
 </html>

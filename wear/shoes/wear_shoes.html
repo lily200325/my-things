@@ -8,13 +8,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="search-bar">
-            <input type="text" placeholder="搜索...">
-            <div class="action-buttons">
-                <button class="export-btn" onclick="exportAllData()">导出</button>
-                <button onclick="importData()">导入</button>
-            </div>
-        </div>
         <div class="header">
             <a href="../index.html" class="back-button">←</a>
         </div>
@@ -71,7 +64,7 @@
     </div>
 
     <!-- 导出数据弹窗 -->
-    <div class="modal" id="exportModal">
+    <!-- <div class="modal" id="exportModal">
         <div class="modal-content">
             <h3>导出数据</h3>
             <textarea id="exportData" readonly></textarea>
@@ -80,10 +73,11 @@
                 <button class="close-btn" onclick="closeModal()">关闭</button>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <script>
         // 从localStorage获取数据
+        /*
         function getItemsFromStorage(type) {
             const data = localStorage.getItem(`shoes_${type}`);
             return data ? JSON.parse(data) : [];
@@ -161,6 +155,7 @@
                 modal.style.display = 'none';
             }
         }
+        */
     </script>
 </body>
 </html> 

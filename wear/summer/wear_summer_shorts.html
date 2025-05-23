@@ -37,67 +37,168 @@
         <div id="itemsContainer" class="items-container"></div>
     </div>
     <script>
-        let items = JSON.parse(localStorage.getItem('summer_shorts') || '[]');
-        let imageData = '';
-        const imageInput = document.getElementById('imageInput');
-        const previewImg = document.getElementById('previewImg');
-        const imagePlaceholder = document.getElementById('imagePlaceholder');
-        imageInput.onchange = function(e) {
+        let db;
+        const request = indexedDB.open('ClothesDB', 4);
+
+        request.onerror = function() {
+            alert('数据库打开失败');
+        };
+
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            renderItems();
+        };
+
+        request.onupgradeneeded = function(event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('dress_items')) {
+                db.createObjectStore('dress_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('shorts_items')) {
+                db.createObjectStore('shorts_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('camisole_items')) {
+                db.createObjectStore('camisole_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('sunproof_items')) {
+                db.createObjectStore('sunproof_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('skirt_items')) {
+                db.createObjectStore('skirt_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('top_items')) {
+                db.createObjectStore('top_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('swimwear_items')) {
+                db.createObjectStore('swimwear_items', { keyPath: 'id', autoIncrement: true });
+            }
+            if (db.objectStoreNames.contains('clothes')) {
+                // db.deleteObjectStore('clothes');
+            }
+        };
+
+        function addCloth(image, location) {
+            if (!db || !db.objectStoreNames.contains('shorts_items')) {
+                console.error('数据库未准备好或 shorts_items 对象存储不存在');
+                return;
+            }
+            const tx = db.transaction('shorts_items', 'readwrite');
+            const store = tx.objectStore('shorts_items');
+            store.add({ image, location });
+            tx.oncomplete = renderItems;
+        }
+
+        function renderItems() {
+            if (!db || !db.objectStoreNames.contains('shorts_items')) {
+                 console.error('数据库未准备好或 shorts_items 对象存储不存在，无法渲染项目');
+                 return;
+            }
+            const tx = db.transaction('shorts_items', 'readonly');
+            const store = tx.objectStore('shorts_items');
+            const req = store.getAll();
+            req.onsuccess = function() {
+                const items = req.result;
+                const container = document.getElementById('itemsContainer');
+                container.innerHTML = '';
+                items.forEach((item) => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.dataset.id = item.id;
+                    card.innerHTML = `
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">×</button>
+                        <img src="${item.image}" class="image-preview" />
+                        <div class="location-text editable" ondblclick="makeEditable(this)">${item.location}</div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        window.deleteItem = function(id) {
+            if (!db || !db.objectStoreNames.contains('shorts_items')) {
+                console.error('数据库未准备好或 shorts_items 对象存储不存在，无法删除项目');
+                return;
+            }
+            const tx = db.transaction('shorts_items', 'readwrite');
+            const store = tx.objectStore('shorts_items');
+            store.delete(id);
+            tx.oncomplete = renderItems;
+        }
+
+        function makeEditable(element) {
+            element.contentEditable = true;
+            element.classList.add('editing');
+            element.focus();
+
+            const originalText = element.textContent;
+
+            function saveEdit() {
+                element.contentEditable = false;
+                element.classList.remove('editing');
+                const itemId = parseInt(element.parentElement.dataset.id);
+                if (!db || !db.objectStoreNames.contains('shorts_items')) {
+                     console.error('数据库未准备好或 shorts_items 对象存储不存在，无法保存编辑');
+                     return;
+                }
+                const tx = db.transaction('shorts_items', 'readwrite');
+                const store = tx.objectStore('shorts_items');
+                store.get(itemId).onsuccess = function(event) {
+                    const item = event.target.result;
+                    if (item) {
+                        item.location = element.textContent;
+                        store.put(item);
+                    }
+                };
+            }
+
+            function cancelEdit() {
+                element.textContent = originalText;
+                element.contentEditable = false;
+                element.classList.remove('editing');
+            }
+
+            element.addEventListener('blur', saveEdit);
+            element.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                } else if (e.key === 'Escape') {
+                    cancelEdit();
+                }
+            });
+        }
+
+        document.getElementById('addBtn').onclick = function() {
+            const locInput = document.getElementById('locationInput');
+            const imageInput = document.getElementById('imageInput');
+            if (!imageInput.files[0] || !locInput.value) {
+                alert('请添加图片和位置信息');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                addCloth(ev.target.result, locInput.value);
+                // 重置表单
+                document.getElementById('previewImg').style.display = 'none';
+                document.getElementById('imagePlaceholder').style.display = 'block';
+                imageInput.value = '';
+                locInput.value = '';
+            }
+            reader.readAsDataURL(imageInput.files[0]);
+        }
+
+        document.getElementById('imageInput').onchange = function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(ev) {
-                    imageData = ev.target.result;
-                    previewImg.src = imageData;
-                    previewImg.style.display = 'block';
-                    imagePlaceholder.style.display = 'none';
+                    document.getElementById('previewImg').src = ev.target.result;
+                    document.getElementById('previewImg').style.display = 'block';
+                    document.getElementById('imagePlaceholder').style.display = 'none';
                 }
                 reader.readAsDataURL(file);
             }
         }
-        function renderItems() {
-            const container = document.getElementById('itemsContainer');
-            container.innerHTML = '';
-            items.forEach((item, idx) => {
-                const card = document.createElement('div');
-                card.className = 'item-card';
-                card.innerHTML = `
-                    <button class="delete-btn" onclick="deleteItem(${idx})">×</button>
-                    <img src="${item.image}" class="image-preview" />
-                    <div class="location-text" contenteditable="true" onblur="updateLocation(${idx}, this.textContent)">${item.location}</div>
-                `;
-                container.appendChild(card);
-            });
-        }
-        window.updateLocation = function(idx, newLoc) {
-            items[idx].location = newLoc;
-            localStorage.setItem('summer_shorts', JSON.stringify(items));
-        }
-        window.deleteItem = function(idx) {
-            if (confirm('确定要删除这个物品吗？')) {
-                items.splice(idx, 1);
-                localStorage.setItem('summer_shorts', JSON.stringify(items));
-                renderItems();
-            }
-        }
-        document.getElementById('addBtn').onclick = function() {
-            const locInput = document.getElementById('locationInput');
-            if (!imageData || !locInput.value) {
-                alert('请添加图片和位置信息');
-                return;
-            }
-            items.push({ image: imageData, location: locInput.value });
-            localStorage.setItem('summer_shorts', JSON.stringify(items));
-            renderItems();
-            // 重置表单
-            imageData = '';
-            previewImg.src = '';
-            previewImg.style.display = 'none';
-            imagePlaceholder.style.display = 'block';
-            imageInput.value = '';
-            locInput.value = '';
-        }
-        renderItems();
     </script>
 </body>
 </html>
